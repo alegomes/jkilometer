@@ -279,6 +279,8 @@ function process_jmeter_log() {
 	if [[ "$SUMMARY_RESULTS" =~ Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).* ]] 
 	then 
 
+		HEADER="Samples,RampUp,Time,Throughput,Avg,Min,Max,Err,MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad,"
+		
 		if [[ ! -z $COMMENT ]]; then
 		   	echo "#" 			>> $SUMMARY_FILE
 			echo "# $COMMENT" 	>> $SUMMARY_FILE 
@@ -371,7 +373,6 @@ SERVER_FILE=".server_metrics.jmeter"
 SUMMARY_FILE="reports/summary_results.csv"
 TEST_REPORT="reports/tests_results.csv"
 ERRORS_FILE="reports/errors.txt"
-HEADER="Samples,RampUp,Time,Throughput,Avg,Min,Max,Err,MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad,"
 
 rm $LOG_FILE &> /dev/null
 
