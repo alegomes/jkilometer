@@ -15,24 +15,27 @@ How to use it
 
 		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2 -S 10.9.8.7
 		
-* Then, I changed the -Xmx JVM argument
+* Re-executing the test after changing JVM's -Xmx argument
 
 		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2 -S 10.9.8.7 -c "Increased Tomcat's -Xmx to 8Gb"
 
+What's the big deal?
+--------------------
+Instead of just running a test plan, as JMeter does, it's also capable of collect any metric you want from tested servers and merge it with JMeter test results to generate a comprehensive mass of data.
+
+Disclaimer
+----------
+I made it to my personal use and it #WORKSFORME. So, use it at your own risk. Don't blame me if it's not so well designed or as flexible as you wish. And please, be my guest to fork it and make it better.
+
 Motivation
 ----------
-So, we use JMeter for years. We already know how to get the best of it, right? We use it to simulate access on web apps usually to perform any sort of tuning. We are senior developers/sysadmins and, as such, we feel when something is going wrong. We can smell thread blockings. We guess memory leaks and dream with 'TooManyOpenFiles'-like issues. Well, at least, that's how I see people getting tunings done.
+So, we use JMeter for years. We already know how to get the best of it, right? We use it to simulate access on web apps usually to perform any sort of tuning. We are senior developers/sysadmins and, as such, we feel when something is going wrong. We can smell thread blocking. We guess memory leaks and dream with 'TooManyOpenFiles'-like issues. Well, at least, that's how I see people getting tunings done.
 
-Usually, perf tests lacks structured data. When tuning an environment, people underestimates the need of collect metrics in such a way that graphical analisys could be handled to generate clear conclusions. 
+Usually, perf tests lacks structured data. When tuning an environment, people underestimates the need to collect metrics in such a way that graphical analysis could be handled to generate clear conclusions. 
 
-You know what? I'm not the best person to talk about all this stuff. I'm sure you can find better content out there. Just google for performance tests or even benchmarking strategies. The point is we need to gather data. And we need consistent data across every step made on the test cycle.
+Yes, I know JMeter can generate some metrics and even collect data from tested servers. But, as far as I know, it's limited (based on Tomcat's Manager application). I didn't realize yet any way to get fine grained infos from tested servers during a load test execution. We need to know how is the server memory, the system load and how many blocked threads exists during the test lifecycle. Well, I do know how to get all these data using SSH and Unix commands. The point is I never found an out-of-the-box feature to synchronize this remote data to JMeter results. And that's why I developed this BASH scripts. It aims to wrap JMeter execution, collect remote data during the testing process and compile it as a single and integrated unit.
 
-We need to know how the server memory (or system load, or blocked procs) are during a test execution. We also must follow the test execution and
-
-How to use it
--------------
-
-Download both script, jkm.sh and jkmagent.sh. The former is the client test. It interacts to JMeter to start a given test, monitor its execution and merge its data to metrics collected from the tested server. The second script, jkmagent.sh, is the guy responsible to collect metrics on a Java app server and send it to jkm.sh as resquested.
+But I'm not the best person to talk about all this stuff. I'm sure you can find better content out there. Just google for performance tests or even benchmarking strategies. The point is we need to gather data. And we need consistent data across every step made on the test cycle.
 
 Need more help?
 ---------------
@@ -65,3 +68,4 @@ Try *./jkm.sh -h* and get
          ** HELP MODE **
 
            -h or -? Prints this help message.
+
