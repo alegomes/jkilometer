@@ -9,7 +9,7 @@ How to use it
 -------------
 * Simplest use
 
- 	./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
+ 		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
 
 
 Motivation
