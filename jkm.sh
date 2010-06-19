@@ -135,6 +135,8 @@ function test_required_parameters() {
 				usage	
 			fi
 			
+			# [TODO] Make it optional
+			
 			if [ -z "$APPSERVER_PRESENT" ]; then
 				echo "Argument missing: -S"
 				usage	
