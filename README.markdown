@@ -8,7 +8,8 @@ Jkilometer is a set os BASH scripts developed to help us on benchmarking Java ap
 How to use it
 -------------
 * Simplest use
- ./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
+
+ 	./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
 
 
 Motivation
@@ -30,7 +31,7 @@ Need more help?
 ---------------
 Try *./jkm.sh -h* and get
 
-Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address>] [-R ip1,ip2,ip3...] [-c comment] | -s | -h?
+  	Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address>] [-R ip1,ip2,ip3...] [-c comment] | -s | -h?
 
          ** MASTER MODE **
 
