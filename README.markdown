@@ -7,10 +7,17 @@ Jkilometer is a set os BASH scripts developed to help us on benchmarking Java ap
 
 How to use it
 -------------
-* Simplest use
+* Starting 20 threads in 2 seconds to execute MyTestPlan.jxm   
+ 	
+		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
 
- 		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
+* Now, monitoring server's behavior
 
+		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2 -S 10.9.8.7
+		
+* Then, I changed the -Xmx JVM argument
+
+		./jkm.sh -t MyTestPlan.jmx -T 20 -r 2 -S 10.9.8.7 -c "Increased Tomcat's -Xmx to 8Gb"
 
 Motivation
 ----------
