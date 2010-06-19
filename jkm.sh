@@ -49,10 +49,36 @@ function killJKM() {
 }
 
 function usage() {
-   echo 
-   echo "Usage:  ./jkm.sh -t jmeter_script.jmx -T <num_of_threads> -r <ramp_up> -S <appserver_address> [-R ip1,ip2,ip3...] [-c comment] | -s | -h?"
-   echo 
-   exit -1
+   	echo 
+   	echo "Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address>] [-R ip1,ip2,ip3...] [-c comment] | -s | -h?"
+   	echo 
+	echo -e "\t ** MASTER MODE **"
+	echo 
+	echo -e "\t   Required Arguments"
+	echo -e "\t   -------------------"
+   	echo -e "\t   -t A JMeter test plan JMX file"
+   	echo
+   	echo -e "\t   -T The number of threads to run the test plan"
+   	echo
+   	echo -e "\t   -r The time (in seconds) JMeter has to start all the specified threads"
+   	echo
+	echo -e "\t   Optional Arguments"
+	echo -e "\t   -------------------"
+   	echo -e "\t   -S The Java server you wish to monitor during the test plan execution (jkmagent.sh needed)"
+	echo
+	echo -e "\t   -R Set of JMeter Slaves addresses to help on test plan execution"
+	echo
+	echo -e "\t   -c A useful comment to distinguish previous test execution from the next one"
+	echo
+	echo -e "\t ** SLAVE MODE **"
+	echo
+	echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html)"
+	echo
+	echo -e "\t ** HELP MODE **"
+	echo
+	echo -e "\t   -h or -? Prints this help message."
+	echo
+	exit -1
 }
 
 function test_jmeter_existence() {

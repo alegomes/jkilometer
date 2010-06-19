@@ -1,9 +1,15 @@
-JKilometer - Boosting JMeter tests
+JKilometer - boosting JMeter tests
 ==================================
 
 What is it?
 -----------
-Jkilometer is a set os BASH scripts developed to help us on performance tuning tasks.
+Jkilometer is a set os BASH scripts developed to help us on benchmarking Java apps with Jakarta JMeter tool.
+
+How to use it
+-------------
+* Simplest use
+ ./jkm.sh -t MyTestPlan.jmx -T 20 -r 2
+
 
 Motivation
 ----------
@@ -19,3 +25,35 @@ How to use it
 -------------
 
 Download both script, jkm.sh and jkmagent.sh. The former is the client test. It interacts to JMeter to start a given test, monitor its execution and merge its data to metrics collected from the tested server. The second script, jkmagent.sh, is the guy responsible to collect metrics on a Java app server and send it to jkm.sh as resquested.
+
+Need more help?
+---------------
+Try *./jkm.sh -h* and get
+
+Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address>] [-R ip1,ip2,ip3...] [-c comment] | -s | -h?
+
+         ** MASTER MODE **
+
+           Required Arguments
+           -------------------
+           -t A JMeter test plan JMX file
+
+           -T The number of threads to run the test plan
+
+           -r The time (in seconds) JMeter has to start all the specified threads
+
+           Optional Arguments
+           -------------------
+           -S The Java server you wish to monitor during the test plan execution (jkmagent.sh needed)
+
+           -R Set of JMeter Slaves addresses to help on test plan execution
+
+           -c A useful comment to distinguish previous test execution from the next one
+
+         ** SLAVE MODE **
+
+           -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html)
+
+         ** HELP MODE **
+
+           -h or -? Prints this help message.
