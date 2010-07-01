@@ -50,7 +50,7 @@ function killJKM() {
 
 function usage() {
    	echo 
-   	echo "Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address>] [-R ip1,ip2,ip3...] [-c comment] | -s | -h?"
+   	echo "Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address> -R ip1,ip2,ip3... -c comment -H <proxy_address> -P <proxy_port> ] | -s | -h?"
    	echo 
 	echo -e "\t ** MASTER MODE **"
 	echo 
@@ -66,13 +66,17 @@ function usage() {
 	echo -e "\t   -------------------"
    	echo -e "\t   -S The Java server you wish to monitor during the test plan execution (jkmagent.sh needed)"
 	echo
-	echo -e "\t   -R Set of JMeter Slaves addresses to help on test plan execution"
+	echo -e "\t   -R Set of JMeter Slaves addresses to help on test plan execution !!! NOT TESTED !!!"
 	echo
 	echo -e "\t   -c A useful comment to distinguish previous test execution from the next one"
 	echo
+	echo -e "\t   -H Proxy server address"
+	echo
+	echo -e "\t   -P Proxy server port"
+	echo
 	echo -e "\t ** SLAVE MODE **"
 	echo
-	echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html)"
+	echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html) !!! NOT TESTED !!!"
 	echo
 	echo -e "\t ** HELP MODE **"
 	echo
@@ -110,7 +114,6 @@ function test_required_parameters() {
 	TEST_SUITE_PRESENT=`echo $@ | grep "\-t"`
 	NUM_THREADS_PRESENT=`echo $@ | grep "\-T"`
 	RAMP_UP_PRESENT=`echo $@ | grep "\-r"`
-	APPSERVER_PRESENT=`echo $@ | grep "\-S"`
 
 	if [ -z "$JMETER_SERVER_PRESENT" ]; then
 	
@@ -135,28 +138,30 @@ function test_required_parameters() {
 				usage	
 			fi
 			
-			# [TODO] Make it optional
-			
-			if [ -z "$APPSERVER_PRESENT" ]; then
-				echo "Argument missing: -S"
-				usage	
-			fi
-			
-			if [ "$#" -eq "7" ]; then
-				echo "Something wrong. -c argument is missing?"
-				usage
-			fi
 		fi
 	fi
+}
+
+function test_parameters_consistence() {
+
+	APPSERVER_PRESENT=`echo $@ | grep "\-S"`
+	
+	if [ ! -z "$APPSERVER_PRESENT" ] && [ -z "$JAVA_SERVER" ]; then
+		echo "-S argument present, but no server address specified."
+		usage	
+	fi
+
+	if [ ! -z "$PROXY_ADDR" ] && [ -z "$PROXY_PORT" ]; then
+		echo "Argument missing: -P"
+		usage
+	fi
+
 }
 
 function run_jmeter_server() {
 	
 	echo "Running JMeter Server..."
 	
-	# TODO Parametize proxy settings and JMeter path
-	#SCRIPT_PATH=$0
-	# ${SCRIPT_PATH%/*}/jakarta-jmeter-2.3.4/bin/jmeter -s > $TMP_FILE
 	$JMETER_PATH -s > $TMP_FILE 
 	exit $?
 
@@ -202,19 +207,11 @@ function monitor_jmeter_execution() {
 	         "JMeterThStarted," \
              "JMeterThFinished," \
 			 "JMeterThRatio," \
-			 "JMeterErrors," \
-             "ServerCnx:80," \
-             "ServerCnx:8080," \
-			 "ServerSysLoad," \
-             "ServerJVMThAll," \
-             "ServerJVMThRun," \
-             "ServerJVMThBlk," \
-             "ServerJVMThWai," \
-             "ServerJVMEden," \
-             "ServerJVMOld," \
-             "ServerJVMPerm")
+			 "JMeterErrors")
+	
 
-    JMETER_TH_FINISHED="0" 
+    JMETER_TH_FINISHED="0"
+    i=0
 	while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
   
 	  NOW=`date '+%H:%M:%S'`
@@ -230,13 +227,32 @@ function monitor_jmeter_execution() {
 		JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
 	  fi
 
-	  # Collects app server metrics
-	  telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
-	  # Exemplo: 0| 0| 0.00| 61| 9| 0| 52| 40.38| 84.87| 99.90
-      SERVER=`cat $SERVER_FILE | grep \,`
+	  SERVER=""
+
+	  # TODO Extract to function
+	  if [ ! -z "$JAVA_SERVER" ]; then
+
+		  HEADER=$(echo -e "${HEADER}," \
+	             "ServerCnx:80," \
+	             "ServerCnx:8080," \
+				 "ServerSysLoad," \
+	             "ServerJVMThAll," \
+	             "ServerJVMThRun," \
+	             "ServerJVMThBlk," \
+	             "ServerJVMThWai," \
+	             "ServerJVMEden," \
+	             "ServerJVMOld," \
+	             "ServerJVMPerm")
+
+		  # Collects app server metrics
+		  telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
+		  # Exemplo: 0, 0, 0.00, 61, 9, 0, 52, 40.38, 84.87, 99.90
+	      SERVER=`cat $SERVER_FILE | grep \,`
 	  
-	  if [ -z "$SERVER" ]; then
-		SERVER="There's no,jkmagent.sh,listening on,$JAVA_SERVER"
+		  if [ -z "$SERVER" ]; then
+			SERVER="There's no,jkmagent.sh,listening on,$JAVA_SERVER"
+		  fi
+	  
 	  fi
    	  
 	  line_with_header=$(echo $HEADER"\n" \
@@ -259,9 +275,10 @@ function monitor_jmeter_execution() {
 	  #
 
 	  let title=i%15
-	  if [ $title -eq 0 ]; then
+	  if [ "$title" -eq "0" ]; then
 		
-		TEST_METRICS="$line_with_header"
+		# In the log file, header must be printed only once 
+		if [ $i -eq 0 ]; then TEST_METRICS="$line_with_header"; fi
 		
 	    # With header
 	    echo -e "$line_with_header" | column -t -s\, 
@@ -307,6 +324,7 @@ function process_jmeter_log() {
 	if [[ "$SUMMARY_RESULTS" =~ Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).* ]] 
 	then 
 
+		# TODO Implement MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad
 		HEADER="Samples,RampUp,Time,Throughput,Avg,Min,Max,Err,MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad,"
 		
 		if [[ ! -z $COMMENT ]]; then
@@ -365,9 +383,11 @@ function run_jmeter_client() {
 
 	rm jmeter.log &> /dev/null
 
-	# TODO Parametize proxy settings
-	#SCRIPT_PATH=$0
-	$JMETER_PATH -n -t $TEST_SUITE -H proxy.inep.gov.br -P 8080 -l $LOG_FILE > $TMP_FILE &
+	if [ ! -z "$PROXY_ADDR" ]; then
+		$JMETER_PATH -n -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
+	else
+		$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE > $TMP_FILE &
+	fi
 	sleep 3 # Time before jmeter.log creation
 	
 	init_test_report
@@ -408,19 +428,23 @@ if [[ ! -e reports ]]; then mkdir -v reports; fi
 	
 # Check passed arguments
 
-while getopts "t:T:r:R:c:S:sh?" OPT; do
+while getopts "t:T:r:R:c:H:P:S:sh?" OPT; do
   case "$OPT" in
       "t") TEST_SUITE="$OPTARG" ;;
  	  "T") NUM_THREADS="$OPTARG" ;;
       "r") RAMP_UP="$OPTARG" ;;
       "R") JMETER_ARGS="-R $OPTARG" ;;
 	  "c") COMMENT="$OPTARG" ;;
+	  "H") PROXY_ADDR="$OPTARG" ;;
+	  "P") PROXY_PORT="$OPTARG" ;;
 	  "S") JAVA_SERVER="$OPTARG" ;;
 	  "s") run_jmeter_server ;;
       "h") usage;;
       "?") usage;;
   esac
 done
+
+test_parameters_consistence
 
 test_suite_existence
 
