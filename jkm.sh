@@ -337,7 +337,7 @@ function process_jmeter_log() {
 		
 		echo "${START_TIME},${BASH_REMATCH[1]},${RAMP_UP},${BASH_REMATCH[2]},${BASH_REMATCH[3]},${BASH_REMATCH[4]},${BASH_REMATCH[5]},${BASH_REMATCH[6]},${BASH_REMATCH[7]}"  >> $SUMMARY_FILE
 	else
-	    echo "Resultado do JMeter nao corresponde ao esperado! "
+	    echo "JMeter results not in expected format! Is 'Generate Summary Result' listener present in $TEST_SUITE ?"
 	    echo "-->${SUMMARY_RESULTS}<--"
 	    exit -1
 	fi
