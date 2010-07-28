@@ -26,7 +26,7 @@ function usage() {
 	echo 
 	echo -e "\t* no argument starts listening for connections on port 8977."
 	echo -e "\t* -c Collects data in the form:\n" \
-	 "\t\thttpd_conn|liferay_conn|\n" \
+	 "\t\thttpd_conn|tomcat_conn|\n" \
 	 "\t\tsys_load|\n" \
 	 "\t\tmem_free|\n" \
 	 "\t\tprocsrunning|\n" \
@@ -57,21 +57,39 @@ function collect_data() {
 	# NOW=`date '+%d/%m/%Y %H:%M:%S'`
 	# echo "$NOW - Collecting metrics"
 
+	if [[ `uname` == 'Darwin' ]]; then
+		
+		echo 
+		echo "Sorry, but jkmagent only works on linux machines."
+		echo "Want to port it to something else? Fork it you! http://github.com/alegomes/jkilometer ;-)"
+		echo
+
+		exit -1
+	fi
+
 	# TODO Review not used variables and their names 
 
 	httpd_conn=$(netstat -an | grep -i ":80 " | grep -i estab | wc -l)
-	liferay_conn=$(netstat -an | grep -i ":8080 " | grep -i estab | wc -l) # 'liferay' could be easly replaced by 'tomcat'
+	tomcat_conn=$(netstat -an | grep -i ":8080 " | grep -i estab | wc -l) 
 	sys_load=$(cat /proc/loadavg | awk '{print $1 }')
 	mem_free=$(grep MemFree /proc/meminfo | awk '{print $2}')
 
 	procsrunning=$(grep "procs_running" /proc/stat | awk '{print $2}')
 	procsblocked=$(grep "procs_blocked" /proc/stat | awk '{print $2}')
 
-	liferay_pid=$(jps | grep -i bootstrap | awk '{print $1}')
-	tomcat_user=$(ps aux | grep -i $liferay_pid | grep -i java | awk '{print $1}')
+	# javaserver can be a Tomcat or a JBoss
+	javaserver_pid=$(jps | grep -i bootstrap | awk '{print $1}') 							 # Tomcat
+	if [[ -z "$javaserver_pid" ]]; then
+		javaserver_pid=$(ps aux | grep -i  org.jboss.Main | grep -v grep | awk '{print $2}') # JBoss
+	fi
+	
+	
+	tomcat_user=$(ps aux | grep -i $javaserver_pid | grep -i java | awk '{print $1}')
 
-	su $tomcat_user -c "jstack $liferay_pid > /tmp/liferay_stack"
-	su $tomcat_user -c "jstat -gcutil $liferay_pid > /tmp/liferay_stat"
+    # echo "$(tomcat_user) password can be asked next"
+
+	su - $tomcat_user -c "jstack $javaserver_pid > /tmp/liferay_stack"
+	su - $tomcat_user -c "jstat -gcutil $javaserver_pid > /tmp/liferay_stat"
 
 	liferay_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | wc -l)
 	liferay_blocked_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | grep -i block | wc -l)
@@ -87,7 +105,7 @@ function collect_data() {
 	fi
 
 	echo "$httpd_conn," \
-	  "$liferay_conn," \
+	  "$tomcat_conn," \
 	  "$sys_load," \
 	  "$liferay_threads," \
 	  "$liferay_runnable_threads," \
