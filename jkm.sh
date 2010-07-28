@@ -325,7 +325,7 @@ function process_jmeter_log() {
 	then 
 
 		# TODO Implement MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad
-		HEADER="Samples,RampUp,Time,Throughput,Avg,Min,Max,Err,MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad,"
+		HEADER="Time,Samples,RampUp,TotalTime,Throughput,Avg,Min,Max,Err,MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad,"
 		
 		if [[ ! -z $COMMENT ]]; then
 		   	echo "#" 			>> $SUMMARY_FILE
