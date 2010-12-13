@@ -18,6 +18,7 @@
 
 
 PORT=8977
+PLATFORM=$(uname)
 
 function usage() {
 
@@ -61,8 +62,7 @@ function collect_data() {
 
 	httpd_conn=$(netstat -an | grep -i ":80 " | grep -i estab | wc -l)
 	tomcat_conn=$(netstat -an | grep -i ":8080 " | grep -i estab | wc -l) 
-	platform=$(uname)
-	case $platform in
+	case $PLATFORM in
 	Linux )
 	    sys_load=$(cat /proc/loadavg | awk '{print $1 }')
 	    mem_free=$(grep MemFree /proc/meminfo | awk '{print $2}') ;;
@@ -121,9 +121,17 @@ function start_listening_to_jmeter_script() {
 	echo "JMeter Agent listeting on port ${PORT}."
 	echo "Now you can start your tests...."
 	echo
-	
+
+    case $PLATFORM in
+	Linux )
+	    NETCAT_PARAMS="-l -p $PORT -vv -c \"$0 -c\"" ;;
+	Darwin )
+	    NETCAT_PARAMS="-l localhost $PORT -vv -c \"$0 -c\"" ;;
+	esac
+
 	while true; do
-		nc -l -p $PORT -vv -c "$0 -c" 2> /dev/null
+	    echo nc $NETCAT_PARAMS
+		nc $NETCAT_PARAMS
 	
 		trap "killJMeter" HUP
 		trap "killJMeter" INT

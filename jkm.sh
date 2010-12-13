@@ -86,25 +86,32 @@ function usage() {
 
 function test_jmeter_existence() {
 
-	for JMETER_MATCH in $(find . -iname jmeter | grep bin); do
+    if [ -z "$JMETER_PATH" ] ; then
+    	for JMETER_MATCH in $(find . -iname jmeter | grep bin); do
 		
-		if [[ -f "$JMETER_MATCH" && -x "$JMETER_MATCH" ]]; then
-			JMETER_PATH=$JMETER_MATCH
-		fi
+	    	if [[ -f "$JMETER_MATCH" && -x "$JMETER_MATCH" ]]; then
+		    	JMETER_PATH=$JMETER_MATCH
+    		fi
 		
-	done
-	
-	if [ -z "$JMETER_PATH"   ]; then
-		echo
-		echo "JMeter not found. Put it in the same level as jkm.sh script."
-		echo
-		echo -e "\tmy_dir/"
-		echo -e "\tmy_dir/jkm.sh"
-		echo -e "\tmy_dir/jakarta-jmeter-2.3.4/"
-		echo
-		exit -1
+	    done
 	fi
 	
+  	if [ -z "$JMETER_PATH"   ]; then
+   		echo
+    	echo "JMeter not found. Put it in the same level as jkm.sh script."
+   		echo
+	    echo -e "\tmy_dir/"
+	    echo -e "\tmy_dir/jkm.sh"
+   		echo -e "\tmy_dir/jakarta-jmeter-2.3.4/"
+    	echo
+	    exit -1
+    elif [ ! -x "$JMETER_PATH" ] ; then
+        echo
+        echo "The file \"$JMETER_PATH\" is not executable. The \$JMETER_PATH variable should point to the binary JMeter"
+        echo
+        exit -1
+    fi
+   	
 }
 
 function test_required_parameters() {
