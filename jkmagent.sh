@@ -57,22 +57,19 @@ function collect_data() {
 	# NOW=`date '+%d/%m/%Y %H:%M:%S'`
 	# echo "$NOW - Collecting metrics"
 
-	if [[ `uname` == 'Darwin' ]]; then
-		
-		echo 
-		echo "Sorry, but jkmagent only works on linux machines."
-		echo "Want to port it to something else? Fork it you! http://github.com/alegomes/jkilometer ;-)"
-		echo
-
-		exit -1
-	fi
-
 	# TODO Review not used variables and their names 
 
 	httpd_conn=$(netstat -an | grep -i ":80 " | grep -i estab | wc -l)
 	tomcat_conn=$(netstat -an | grep -i ":8080 " | grep -i estab | wc -l) 
-	sys_load=$(cat /proc/loadavg | awk '{print $1 }')
-	mem_free=$(grep MemFree /proc/meminfo | awk '{print $2}')
+	platform=$(uname)
+	case $platform in
+	Linux )
+	    sys_load=$(cat /proc/loadavg | awk '{print $1 }')
+	    mem_free=$(grep MemFree /proc/meminfo | awk '{print $2}') ;;
+	Darwin )
+	    sys_load=$(sysctl vm.loadavg | awk '{print $3}')
+	    mem_free=$(vm_stat | awk '/page size of/{pagesize=$8}/Pages free/{pagesfree=$3}END{print pagesize*pagesfree}') ;;
+	esac
 
 	procsrunning=$(grep "procs_running" /proc/stat | awk '{print $2}')
 	procsblocked=$(grep "procs_blocked" /proc/stat | awk '{print $2}')
