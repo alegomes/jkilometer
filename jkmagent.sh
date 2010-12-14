@@ -50,6 +50,7 @@ function killJMeter() {
 		echo "Finalizando processo $JMETER_PID"
 		kill -9 $JMETER_PID
 	done
+    [ "$JKM_FIFO" ] && rm $JKM_FIFO
 	exit
 }
 
@@ -65,14 +66,17 @@ function collect_data() {
 	case $PLATFORM in
 	Linux )
 	    sys_load=$(cat /proc/loadavg | awk '{print $1 }')
-	    mem_free=$(grep MemFree /proc/meminfo | awk '{print $2}') ;;
+	    mem_free=$(grep MemFree /proc/meminfo | awk '{print $2}') 
+	    procsrunning=$(grep "procs_running" /proc/stat | awk '{print $2}')
+	    procsblocked=$(grep "procs_blocked" /proc/stat | awk '{print $2}') ;;
 	Darwin )
 	    sys_load=$(sysctl vm.loadavg | awk '{print $3}')
-	    mem_free=$(vm_stat | awk '/page size of/{pagesize=$8}/Pages free/{pagesfree=$3}END{print pagesize*pagesfree}') ;;
+	    mem_free=$(vm_stat | awk '/page size of/{pagesize=$8}/Pages free/{pagesfree=$3}END{print pagesize*pagesfree}')
+	    # DATA ABOUT PROCESSES IS OBTAINED THOUGH MANIPULATION OF ps OUTPUT, WHICH IS NOT
+	    # ATOMIC.
+	    procsrunning=$(ps axO state | awk '($4 ~ /^R/){print}' | wc -l)
+	    procsblocked=$(ps axO state | awk '($4 ~ /^U/){print}' | wc -l) ;;
 	esac
-
-	procsrunning=$(grep "procs_running" /proc/stat | awk '{print $2}')
-	procsblocked=$(grep "procs_blocked" /proc/stat | awk '{print $2}')
 
 	# javaserver can be a Tomcat or a JBoss
 	javaserver_pid=$(jps | grep -i bootstrap | awk '{print $1}') 							 # Tomcat
@@ -83,10 +87,8 @@ function collect_data() {
 	
 	tomcat_user=$(ps aux | grep -i $javaserver_pid | grep -i java | awk '{print $1}')
 
-    # echo "$(tomcat_user) password can be asked next"
-
-	su - $tomcat_user -c "jstack $javaserver_pid > /tmp/liferay_stack"
-	su - $tomcat_user -c "jstat -gcutil $javaserver_pid > /tmp/liferay_stat"
+    sudo -p "Enter password for %p" -u $tomcat_user jstack $javaserver_pid > /tmp/liferay_stack
+	sudo -p "Enter password for %p" -u $tomcat_user jstat -gcutil $javaserver_pid > /tmp/liferay_stat
 
 	liferay_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | wc -l)
 	liferay_blocked_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | grep -i block | wc -l)
@@ -128,11 +130,10 @@ function start_listening_to_jmeter_script() {
 	Darwin )
 	    JKM_FIFO=jkm.fifo
 	    mkfifo $JKM_FIFO
-	    NETCAT_CMD="./jkmagent.sh -c < $JKM_FIFO 2>&1 | nc -l localhost $PORT -vv $JKM_FIFO"
+	    NETCAT_CMD="./jkmagent.sh -c < $JKM_FIFO 2>&1 | nc -l localhost $PORT -vv > $JKM_FIFO"
 	esac
-    echo $NETCAT_CMD
 	while true; do
-		$NETCAT_CMD
+		sh -c "$NETCAT_CMD"
 	
 		trap "killJMeter" HUP
 		trap "killJMeter" INT
@@ -141,7 +142,6 @@ function start_listening_to_jmeter_script() {
 		trap "killJMeter" TERM
 		trap "killJMeter" KILL
 	done
-	[ "$JKM_FIFO" ] && rm $JKM_FIFO
 }
 
 # -------------------------------------------------------------
