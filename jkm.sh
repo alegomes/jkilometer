@@ -221,14 +221,14 @@ function monitor_jmeter_execution() {
 	while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
   
 	  NOW=`date '+%H:%M:%S'`
-
+      
 	  # awk removes \t from wc output
 	  JMETER_TH_STARTED=$(cat jmeter.log | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
 	  # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
 	  JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
-
+      
 	  JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
-
+      
 	  if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
 		JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
 	  fi
@@ -251,7 +251,10 @@ function monitor_jmeter_execution() {
 	             "ServerJVMPerm")
 
 		  # Collects app server metrics
-		  telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
+		  echo telnet $JAVA_SERVER $AGENT_PORT
+		  telnet $JAVA_SERVER $AGENT_PORT | tee $SERVER_FILE 
+		  
+		  cat $SERVER_FILE
 		  # Exemplo: 0, 0, 0.00, 61, 9, 0, 52, 40.38, 84.87, 99.90
 	      SERVER=`cat $SERVER_FILE | grep \,`
 	  
@@ -388,7 +391,7 @@ function init_test_report() {
 }
 
 function run_jmeter_client() {
-
+    
 	update_test_suite
 
 	rm jmeter.log &> /dev/null
@@ -399,13 +402,13 @@ function run_jmeter_client() {
 		$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE > $TMP_FILE &
 	fi
 	sleep 3 # Time before jmeter.log creation
-	
+
 	init_test_report
-	
+
 	monitor_jmeter_execution
 
 	process_jmeter_log
-	
+
 	save_errors
 	
 	exit $?

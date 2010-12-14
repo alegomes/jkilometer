@@ -124,14 +124,15 @@ function start_listening_to_jmeter_script() {
 
     case $PLATFORM in
 	Linux )
-	    NETCAT_PARAMS="-l -p $PORT -vv -c \"$0 -c\"" ;;
+	    NETCAT_CMD="nc -l -p $PORT -vv -c \"$0 -c\"" ;;
 	Darwin )
-	    NETCAT_PARAMS="-l localhost $PORT -vv -c \"$0 -c\"" ;;
+	    JKM_FIFO=jkm.fifo
+	    mkfifo $JKM_FIFO
+	    NETCAT_CMD="./jkmagent.sh -c < $JKM_FIFO 2>&1 | nc -l localhost $PORT -vv $JKM_FIFO"
 	esac
-
+    echo $NETCAT_CMD
 	while true; do
-	    echo nc $NETCAT_PARAMS
-		nc $NETCAT_PARAMS
+		$NETCAT_CMD
 	
 		trap "killJMeter" HUP
 		trap "killJMeter" INT
@@ -140,6 +141,7 @@ function start_listening_to_jmeter_script() {
 		trap "killJMeter" TERM
 		trap "killJMeter" KILL
 	done
+	[ "$JKM_FIFO" ] && rm $JKM_FIFO
 }
 
 # -------------------------------------------------------------
