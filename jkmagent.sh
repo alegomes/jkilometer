@@ -86,10 +86,15 @@ function collect_data() {
 	
 	
 	tomcat_user=$(ps aux | grep -i $javaserver_pid | grep -i java | awk '{print $1}')
-
-    sudo -p "Enter password for %p" -u $tomcat_user jstack $javaserver_pid > /tmp/liferay_stack
-	sudo -p "Enter password for %p" -u $tomcat_user jstat -gcutil $javaserver_pid > /tmp/liferay_stat
-
+    
+    if which sudo &> /dev/null; then
+        sudo -p "Enter password for %p" -u $tomcat_user jstack $javaserver_pid > /tmp/liferay_stack
+	    sudo -p "Enter password for %p" -u $tomcat_user jstat -gcutil $javaserver_pid > /tmp/liferay_stat
+    else
+        su - $tomcat_user -c "jstack $javaserver_pid > /tmp/liferay_stack"
+        su - $tomcat_user -c "jstat -gcutil $javaserver_pid > /tmp/liferay_stat"
+    fi
+    
 	liferay_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | wc -l)
 	liferay_blocked_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | grep -i block | wc -l)
 	liferay_runnable_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | grep -i runn | wc -l)
