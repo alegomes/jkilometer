@@ -74,8 +74,8 @@ function collect_data() {
 	    mem_free=$(vm_stat | awk '/page size of/{pagesize=$8}/Pages free/{pagesfree=$3}END{print pagesize*pagesfree}')
 	    # DATA ABOUT PROCESSES IS OBTAINED THOUGH MANIPULATION OF ps OUTPUT, WHICH IS NOT
 	    # ATOMIC.
-	    procsrunning=$(ps axO state | awk '($4 ~ /^R/){print}' | wc -l)
-	    procsblocked=$(ps axO state | awk '($4 ~ /^U/){print}' | wc -l) ;;
+	    procsrunning=$(ps axo state | fgrep R | wc -l)
+	    procsblocked=$(ps axo state | fgrep U | wc -l) ;;
 	esac
 
 	# javaserver can be a Tomcat or a JBoss
