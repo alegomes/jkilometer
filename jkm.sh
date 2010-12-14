@@ -396,9 +396,9 @@ function run_jmeter_client() {
 	rm jmeter.log &> /dev/null
 
 	if [ ! -z "$PROXY_ADDR" ]; then
-		$JMETER_PATH -n -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
+		$JMETER_PATH -n $JMETER_ARGS -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
 	else
-		$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE > $TMP_FILE &
+		$JMETER_PATH -n $JMETER_ARGS -t $TEST_SUITE -l $LOG_FILE > $TMP_FILE &
 	fi
 	sleep 3 # Time before jmeter.log creation
 
