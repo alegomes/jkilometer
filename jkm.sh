@@ -251,8 +251,7 @@ function monitor_jmeter_execution() {
 	             "ServerJVMPerm")
 
 		  # Collects app server metrics
-		  echo telnet $JAVA_SERVER $AGENT_PORT
-		  telnet $JAVA_SERVER $AGENT_PORT | tee $SERVER_FILE 
+		  telnet $JAVA_SERVER $AGENT_PORT 2> /dev/null &> $SERVER_FILE 
 		  
 		  cat $SERVER_FILE
 		  # Exemplo: 0, 0, 0.00, 61, 9, 0, 52, 40.38, 84.87, 99.90
