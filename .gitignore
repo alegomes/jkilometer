@@ -1,0 +1,7 @@
+.detailed_log.jmeter
+.server_metrics.jmeter
+.summary_results.jmeter
+jmeter-server.log
+jmeter.log
+reports
+
