@@ -25,6 +25,11 @@
 # Must be the same as in jmeteragent.sh
 AGENT_PORT=8977
 
+# Max server metrics
+MAX_CNX_HTTP=0
+MAX_CNX_TOMCAT=0
+MAX_SYS_LOAD=0
+
 function killJKM() {
 	IFS=$'\n'
 	for p in $(ps axu | grep -i jmeter | grep $TEST_SUITE | grep -v $0); do
@@ -87,7 +92,7 @@ function usage() {
 
 function test_jmeter_existence() {
 
-	for JMETER_MATCH in $(find . -iname jmeter | grep bin); do
+	for JMETER_MATCH in $(find -L . -iname jmeter | grep bin); do
 		
 		if [[ -f "$JMETER_MATCH" && -x "$JMETER_MATCH" ]]; then
 			JMETER_PATH=$JMETER_MATCH
@@ -202,40 +207,51 @@ function save_test_metrics() {
 #
 function monitor_jmeter_execution() {
 
-	HEADER=$(echo -e \
+    LOCAL_HEADER=$(echo -e \
 			 "Time," \
-	         "JMeterThStarted," \
-             "JMeterThFinished," \
+			 "JMeterThStarted," \
+			 "JMeterThFinished," \
 			 "JMeterThRatio," \
 			 "JMeterErrors")
 	
-
     JMETER_TH_FINISHED="0"
     i=0
 	while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
+
+        if [ "$i" -eq "0" ]; then
+            FIRST_LINE=true
+        fi
   
-	  NOW=`date '+%H:%M:%S'`
+        let title=i%15
+        if [ "$title" -eq "0" ]; then
+            HAS_HEADER=true
+        else
+            HAS_HEADER=false
+        fi
 
-	  # awk removes \t from wc output
-	  JMETER_TH_STARTED=$(cat jmeter.log | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
-	  # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
-	  JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
+        NOW=`date '+%H:%M:%S'`
 
-	  JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
+        # awk removes \t from wc output
+        JMETER_TH_STARTED=$(cat jmeter.log | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
+        # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
+        JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
 
-	  if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
-		JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
-	  fi
+        JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
 
-	  SERVER=""
+        if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
+            JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
+        fi
 
-	  # TODO Extract to function
-	  if [ ! -z "$JAVA_SERVER" ]; then
+        SERVER=""
 
-		  HEADER=$(echo -e "${HEADER}," \
+        # TODO Extract to function
+        if [ ! -z "$JAVA_SERVER" ]; then
+
+            if  $FIRST_LINE; then
+                HEADER=$(echo -e "${LOCAL_HEADER}," \
 	             "ServerCnx:80," \
 	             "ServerCnx:8080," \
-				 "ServerSysLoad," \
+       		     "ServerSysLoad," \
 	             "ServerJVMThAll," \
 	             "ServerJVMThRun," \
 	             "ServerJVMThBlk," \
@@ -243,70 +259,94 @@ function monitor_jmeter_execution() {
 	             "ServerJVMEden," \
 	             "ServerJVMOld," \
 	             "ServerJVMPerm")
+            fi
 
-		  # Collects app server metrics
-		  telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
-		  # Exemplo: 0, 0, 0.00, 61, 9, 0, 52, 40.38, 84.87, 99.90
-	      SERVER=`cat $SERVER_FILE | grep \,`
+            # Collects app server metrics
+	        telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
+	        # Exemplo: 0, 0, 0.00, 61, 9, 0, 52, 40.38, 84.87, 99.90
+	        SERVER=`cat $SERVER_FILE | grep \,`
+
+            if [ -z "$SERVER" ]; then
+                  SERVER="There's no,jkmagent.sh,listening on,$JAVA_SERVER"
+	        else
+	            # Server metrics maximum value
+                IFS=, 
+                http_connections=$(echo $SERVER | awk '{print $1}')
+                tomcat_connections=$(echo $SERVER | awk '{print $2}')
+                sysload=$(echo $SERVER | awk '{print $3}')
+                unset IFS
+
+                if (( $http_connections > $MAX_CNX_HTTP )); then
+                    MAX_CNX_HTTP=$http_connections
+                    #echo "max_cnx_http=$MAX_CNX_HTTP"
+                fi
+
+                if (( $tomcat_connections > $MAX_CNX_TOMCAT )); then
+                    MAX_CNX_TOMCAT=$tomcat_connections
+                    #echo "max_cnx_tomcat=$MAX_CNX_TOMCAT"
+                fi
+
+                if [[ $(echo "$sysload > $MAX_SYS_LOAD" | bc) -eq 1 ]]; then
+                    MAX_SYS_LOAD=$sysload
+                    #echo "max_sys_load=$MAX_SYS_LOAD"
+                fi
+	        fi
 	  
-		  if [ -z "$SERVER" ]; then
-			SERVER="There's no,jkmagent.sh,listening on,$JAVA_SERVER"
-		  fi
-	  
-	  fi
+	    fi
    	  
-	  line_with_header=$(echo $HEADER"\n" \
+	    line_with_header=$(echo $HEADER"\n" \
 	            "${NOW}," \
-	          	"${JMETER_TH_STARTED}," \
-	          	"${JMETER_TH_FINISHED}," \
-				"${JMETER_TH_RATIO}%," \
-				"${JMETER_ERRORS}," \
-				"${SERVER}")
+           	    "${JMETER_TH_STARTED}," \
+	            "${JMETER_TH_FINISHED}," \
+		        "${JMETER_TH_RATIO}%," \
+		        "${JMETER_ERRORS}," \
+		        "${SERVER}")
 
-      line_no_header=$(echo "${NOW}," \
-  				 "${JMETER_TH_STARTED}," \
-	          	 "${JMETER_TH_FINISHED}," \
-				 "${JMETER_TH_RATIO}%," \
-				 "${JMETER_ERRORS}," \
-				 "${SERVER}")
+        line_no_header=$(echo "${NOW}," \
+  		        "${JMETER_TH_STARTED}," \
+	            "${JMETER_TH_FINISHED}," \
+		        "${JMETER_TH_RATIO}%," \
+		        "${JMETER_ERRORS}," \
+  		        "${SERVER}")
 
 	  #
 	  # Imprimir ou nao imprimir o cabecalho?
 	  #
 
-	  let title=i%15
-	  if [ "$title" -eq "0" ]; then
-		
-		# In the log file, header must be printed only once 
-		if [ $i -eq 0 ]; then TEST_METRICS="$line_with_header"; fi
-		
-	    # With header
-	    echo -e "$line_with_header" | column -t -s\, 
-				
-	  else 
+        if $HAS_HEADER; then
 
-		TEST_METRICS="$line_no_header"
+            # In the log file, header must be printed only once 
+            if $FIRST_LINE; then 
+                 TEST_METRICS="$line_with_header"; 
+            fi
+            
+		    # With header
+            echo -e "$line_with_header" | column -t -s\, 
+            
+        else 
+        
+	        TEST_METRICS="$line_no_header"
 
-	     # Without header	
-		 echo -e "$line_with_header" | column -t -s\, | grep -v JMeterThStarted
+             # Without header	
+             echo -e "$line_with_header" | column -t -s\, | grep -v JMeterThStarted
+             
+        fi
+
+        save_test_metrics "$TEST_METRICS"
+
+        line=""
+
+        trap "killJKM" HUP
+        trap "killJKM" INT
+        trap "killJKM" QUIT
+        trap "killJKM" PIPE
+        trap "killJKM" TERM
+        trap "killJKM" KILL
+
+        sleep 5
 	
-	  fi
-
-      save_test_metrics "$TEST_METRICS"
-
-	  line=""
-
-	  trap "killJKM" HUP
-	  trap "killJKM" INT
-	  trap "killJKM" QUIT
-	  trap "killJKM" PIPE
-	  trap "killJKM" TERM
-	  trap "killJKM" KILL
-
-	  sleep 5
-	
-  	  (( i = i + 1 ))
-	done
+        (( i = i + 1 ))
+    done
 
 }
 
@@ -317,12 +357,13 @@ function process_jmeter_log() {
 	NUM_SAMPLES=`cat $TEST_SUITE | grep \<HTTPSampler | wc -l`
 	TOTAL_SAMPLES=$(( NUM_SAMPLES * NUM_THREADS ))
 	SUMMARY_RESULTS=`grep "$TOTAL_SAMPLES in" $TMP_FILE`
+	REGEX="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).*" 
 
 	# Parse JMeter 'Generate Summary Results' listener output.
 	# e.g Generate Summary Results = 10 in 1.1s = 9.5/s Avg: 133 Min: 93 Max: 165 Err: 0 (0.00%)
 
 	# Debian requires quotes around the regex. Does it work on MacOS et. al.?  
-	if [[ "$SUMMARY_RESULTS" =~ "Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).*" ]] 
+	if [[ "$SUMMARY_RESULTS" =~ $REGEX ]] 
 	then 
 
 		# TODO Implement MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad
@@ -335,7 +376,7 @@ function process_jmeter_log() {
 			echo $HEADER   		>> $SUMMARY_FILE
 		fi
 		
-		echo "${START_TIME},${BASH_REMATCH[1]},${RAMP_UP},${BASH_REMATCH[2]},${BASH_REMATCH[3]},${BASH_REMATCH[4]},${BASH_REMATCH[5]},${BASH_REMATCH[6]},${BASH_REMATCH[7]}"  >> $SUMMARY_FILE
+		echo "${START_TIME},${BASH_REMATCH[1]},${RAMP_UP},${BASH_REMATCH[2]},${BASH_REMATCH[3]},${BASH_REMATCH[4]},${BASH_REMATCH[5]},${BASH_REMATCH[6]},${BASH_REMATCH[7]},${MAX_CNX_HTTP},${MAX_CNX_TOMCAT},${MAX_SYS_LOAD}"  >> $SUMMARY_FILE
 	else
 	    echo "JMeter results not in expected format! Is 'Generate Summary Result' listener present in $TEST_SUITE ?"
 	    echo "-->${SUMMARY_RESULTS}<--"

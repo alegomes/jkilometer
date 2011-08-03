@@ -120,13 +120,25 @@ function collect_data() {
 
 function start_listening_to_jmeter_script() {
 
+        NC="nc -l -p $PORT -vv -c \"$0 -c\""
+        
+        # There must be a better way to check netcat version
+        $(echo $NC) 2> /tmp/nc.log
+        if [[ ! -z $(cat /tmp/nc.log | grep -i 'invalid option') ]]; then
+           UBUNTU="looks like" 
+        fi 
+
 	echo 
 	echo "JMeter Agent listeting on port ${PORT}."
 	echo "Now you can start your tests...."
 	echo
 	
 	while true; do
-		nc -l -p $PORT -vv -c "$0 -c" 2> /dev/null
+                if [[ -z $UBUNTU ]]; then 
+		   nc -l -p $PORT -vv -c "$0 -c" 2> /dev/null
+                else
+                   echo `$0 -c` | nc -l $PORT
+                fi
 	
 		trap "killJMeter" HUP
 		trap "killJMeter" INT
@@ -134,6 +146,8 @@ function start_listening_to_jmeter_script() {
 		trap "killJMeter" PIPE
 		trap "killJMeter" TERM
 		trap "killJMeter" KILL
+
+                echo -n "."
 	done
 }
 
