@@ -120,15 +120,15 @@ function collect_data() {
 	 cp /tmp/liferay_stack /tmp/liferay_stack_$liferay_blocked_threads 
 	fi
 
-	echo "$httpd_conn," \
-	  "$tomcat_conn," \
-	  "$sys_load," \
-	  "$liferay_threads," \
-	  "$liferay_runnable_threads," \
-	  "$liferay_blocked_threads," \
-	  "$liferay_waiting_threads," \
-	  "$liferay_eden_usage," \
-	  "$liferay_old_usage," \
+	echo "$httpd_conn;" \
+	  "$tomcat_conn;" \
+	  "$sys_load;" \
+	  "$liferay_threads;" \
+	  "$liferay_runnable_threads;" \
+	  "$liferay_blocked_threads;" \
+	  "$liferay_waiting_threads;" \
+	  "$liferay_eden_usage;" \
+	  "$liferay_old_usage;" \
 	  "$liferay_perm_usage"
 
 	exit 0

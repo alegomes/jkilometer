@@ -208,10 +208,10 @@ function save_test_metrics() {
 function monitor_jmeter_execution() {
 
     LOCAL_HEADER=$(echo -e \
-			 "Time," \
-			 "JMeterThStarted," \
-			 "JMeterThFinished," \
-			 "JMeterThRatio," \
+			 "Time;" \
+			 "JMeterThStarted;" \
+			 "JMeterThFinished;" \
+			 "JMeterThRatio;" \
 			 "JMeterErrors")
 	
     JMETER_TH_FINISHED="0"
@@ -248,29 +248,29 @@ function monitor_jmeter_execution() {
         if [ ! -z "$JAVA_SERVER" ]; then
 
             if  $FIRST_LINE; then
-                HEADER=$(echo -e "${LOCAL_HEADER}," \
-	             "ServerCnx:80," \
-	             "ServerCnx:8080," \
-       		     "ServerSysLoad," \
-	             "ServerJVMThAll," \
-	             "ServerJVMThRun," \
-	             "ServerJVMThBlk," \
-	             "ServerJVMThWai," \
-	             "ServerJVMEden," \
-	             "ServerJVMOld," \
+                HEADER=$(echo -e "${LOCAL_HEADER};" \
+	             "ServerCnx:80;" \
+	             "ServerCnx:8080;" \
+       		     "ServerSysLoad;" \
+	             "ServerJVMThAll;" \
+	             "ServerJVMThRun;" \
+	             "ServerJVMThBlk;" \
+	             "ServerJVMThWai;" \
+	             "ServerJVMEden;" \
+	             "ServerJVMOld;" \
 	             "ServerJVMPerm")
             fi
 
             # Collects app server metrics
 	        telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
-	        # Exemplo: 0, 0, 0.00, 61, 9, 0, 52, 40.38, 84.87, 99.90
-	        SERVER=`cat $SERVER_FILE | grep \,`
+	        # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90
+	        SERVER=`cat $SERVER_FILE | grep \;`
 
             if [ -z "$SERVER" ]; then
-                  SERVER="There's no,jkmagent.sh,listening on,$JAVA_SERVER"
+                  SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
 	        else
 	            # Server metrics maximum value
-                IFS=, 
+                IFS=\; 
                 http_connections=$(echo $SERVER | awk '{print $1}')
                 tomcat_connections=$(echo $SERVER | awk '{print $2}')
                 sysload=$(echo $SERVER | awk '{print $3}')
@@ -295,18 +295,18 @@ function monitor_jmeter_execution() {
 	    fi
    	  
 	    line_with_header=$(echo $HEADER"\n" \
-	            "${NOW}," \
-           	    "${JMETER_TH_STARTED}," \
-	            "${JMETER_TH_FINISHED}," \
-		        "${JMETER_TH_RATIO}%," \
-		        "${JMETER_ERRORS}," \
+	            "${NOW};" \
+           	    "${JMETER_TH_STARTED};" \
+	            "${JMETER_TH_FINISHED};" \
+		        "${JMETER_TH_RATIO}%;" \
+		        "${JMETER_ERRORS};" \
 		        "${SERVER}")
 
-        line_no_header=$(echo "${NOW}," \
-  		        "${JMETER_TH_STARTED}," \
-	            "${JMETER_TH_FINISHED}," \
-		        "${JMETER_TH_RATIO}%," \
-		        "${JMETER_ERRORS}," \
+        line_no_header=$(echo "${NOW};" \
+  		        "${JMETER_TH_STARTED};" \
+	            "${JMETER_TH_FINISHED};" \
+		        "${JMETER_TH_RATIO}%;" \
+		        "${JMETER_ERRORS};" \
   		        "${SERVER}")
 
 	  #
@@ -321,14 +321,14 @@ function monitor_jmeter_execution() {
             fi
             
 		    # With header
-            echo -e "$line_with_header" | column -t -s\, 
+            echo -e "$line_with_header" | column -t -s\; 
             
         else 
         
 	        TEST_METRICS="$line_no_header"
 
              # Without header	
-             echo -e "$line_with_header" | column -t -s\, | grep -v JMeterThStarted
+             echo -e "$line_with_header" | column -t -s\; | grep -v JMeterThStarted
              
         fi
 
