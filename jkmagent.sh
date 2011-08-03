@@ -77,14 +77,30 @@ function collect_data() {
 	procsrunning=$(grep "procs_running" /proc/stat | awk '{print $2}')
 	procsblocked=$(grep "procs_blocked" /proc/stat | awk '{print $2}')
 
-	# javaserver can be a Tomcat or a JBoss
-	javaserver_pid=$(jps | grep -i bootstrap | awk '{print $1}') 							 # Tomcat
+	# Testing Tomcat
+	javaserver_pid=$(jps | grep -i bootstrap | awk '{print $1}')
+	
+	# Testing JBoss
 	if [[ -z "$javaserver_pid" ]]; then
-		javaserver_pid=$(ps aux | grep -i  org.jboss.Main | grep -v grep | awk '{print $2}') # JBoss
+		javaserver_pid=$(ps aux | grep -i  org.jboss.Main | grep -v grep | awk '{print $2}') 
+	fi
+
+	# Testing Glassfish
+	if [[ -z "$javaserver_pid" ]]; then
+		javaserver_pid=$(ps aux | grep -i com.sun.enterprise.glassfish | grep -v grep | awk '{print $2}') 
+	fi
+
+	# No compatiple server
+	if [[ -z "$javaserver_pid" ]]; then
+		echo 'No java server found!'
+		exit 1
 	fi
 	
-	
+	# Getting java process owner
 	tomcat_user=$(ps aux | grep -i $javaserver_pid | grep -i java | awk '{print $1}')
+
+	# Sometimes ps shows uid instead of username 
+	[[ $(echo $tomcat_user | egrep '^[0-9]+$') ]] && tomcat_user=$(getent passwd $tomcat_user | cut -d: -f1)
 
     # echo "$(tomcat_user) password can be asked next"
 
@@ -114,7 +130,7 @@ function collect_data() {
 	  "$liferay_eden_usage," \
 	  "$liferay_old_usage," \
 	  "$liferay_perm_usage"
-	
+
 	exit 0
 }
 
