@@ -212,7 +212,7 @@ function monitor_jmeter_execution() {
 			 "JMeterThStarted;" \
 			 "JMeterThFinished;" \
 			 "JMeterThRatio;" \
-			 "JMeterErrors")
+			 "JMeterErrors(timeout)")
 	
     JMETER_TH_FINISHED="0"
     i=0
@@ -236,10 +236,17 @@ function monitor_jmeter_execution() {
         # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
         JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
 
-        JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
-
-        if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
+		JMETER_TH_RATIO=0
+		if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
             JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
+        fi
+
+        JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
+        JMETER_ERRORS_TIMEOUT=$(grep -i SocketTimeoutException $LOG_FILE | wc -l)
+
+		JMETER_ERRORS_TIMEOUT_RATIO=0
+        if [ "$JMETER_ERRORS_TIMEOUT" -gt "0" ]; then 
+            JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_STARTED} ))
         fi
 
         SERVER=""
@@ -299,14 +306,14 @@ function monitor_jmeter_execution() {
            	    "${JMETER_TH_STARTED};" \
 	            "${JMETER_TH_FINISHED};" \
 		        "${JMETER_TH_RATIO}%;" \
-		        "${JMETER_ERRORS};" \
+		        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
 		        "${SERVER}")
 
         line_no_header=$(echo "${NOW};" \
   		        "${JMETER_TH_STARTED};" \
 	            "${JMETER_TH_FINISHED};" \
 		        "${JMETER_TH_RATIO}%;" \
-		        "${JMETER_ERRORS};" \
+		        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
   		        "${SERVER}")
 
 	  #
