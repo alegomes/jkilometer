@@ -92,10 +92,11 @@ function usage() {
 
 function test_jmeter_existence() {
 
-  if [ ! -z "$JMETER_HOME" ]; then
-    echo -e "JMETER_HOME=$JMETER_HOME"
-    return
-  fi
+  #if [ ! -z "$JMETER_HOME" ]; then
+  #  echo -e "JMETER_HOME=$JMETER_HOME"
+  #  JMETER_PATH="$JMETER_HOME/bin/jmeter"
+  #  return
+  #fi
 
 	for JMETER_MATCH in $(find -L . -iname jmeter | grep bin); do
 		

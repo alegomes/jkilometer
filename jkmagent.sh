@@ -22,11 +22,12 @@ PORT=8977
 function usage() {
 
 	echo 
-	echo "Usage: ./jmeteragent.sh [-c] [-h?]"
+	echo "Usage: ./jmeteragent.sh [-c] [-h?] [-p 9999]"
 	echo 
 	echo -e "\t* no argument starts listening for connections on port 8977."
 	echo -e "\t* -c Collects data in the form:\n" \
-	 "\t\thttpd_conn|tomcat_conn|\n" \
+	 "\t\thttpd_conn|\n" \
+	 "\t\ttomcat_conn|\n" \
 	 "\t\tsys_load|\n" \
 	 "\t\tmem_free|\n" \
 	 "\t\tprocsrunning|\n" \
@@ -37,17 +38,21 @@ function usage() {
 	 "\t\tliferay_waiting_threads|\n" \
 	 "\t\tliferay_eden_usage|\n" \
 	 "\t\tliferay_old_usage|\n" \
-	 "\t\tliferay_perm_usage"
+	 "\t\tliferay_perm_usage|\n" \
+	 "\t\tdb_conn_estab|\t\t(if database port given with -p)\n" \
+	 "\t\tdb_conn_tw\t\t(if database port given with -p)"
 	echo -e "\t* -h or -? Shows this (beautiful) message."
 	echo
+
+	exit 
 }
 
 function killJMeter() {
 	IFS=$'\n'
-	for p in $(ps axu | grep -i jmeteragent | grep -v $0); do
+	for p in $(ps axu | grep $0 | grep -v grep); do
 		JMETER_PID=$(echo $p | awk '{print $2}')
 		echo "Finalizando processo $JMETER_PID"
-		kill -9 $JMETER_PID
+		kill -9 $JMETER_PID &2> /dev/null
 	done
 	exit
 }
@@ -120,6 +125,9 @@ function collect_data() {
 	 cp /tmp/liferay_stack /tmp/liferay_stack_$liferay_blocked_threads 
 	fi
 
+	db_conn_estab=$(netstat -an | grep -i -e ":${DBPORT}[ ]*estab" | wc -l)
+	db_conn_tw=$(netstat -an | grep -i -e ":${DBPORT}[ ]*time_wait" | wc -l)
+
 	echo "$httpd_conn;" \
 	  "$tomcat_conn;" \
 	  "$sys_load;" \
@@ -129,7 +137,9 @@ function collect_data() {
 	  "$liferay_waiting_threads;" \
 	  "$liferay_eden_usage;" \
 	  "$liferay_old_usage;" \
-	  "$liferay_perm_usage"
+	  "$liferay_perm_usage;" \
+	  "$db_conn_estab;" \
+	  "$db_conn_tw"
 
 	exit 0
 }
@@ -150,11 +160,11 @@ function start_listening_to_jmeter_script() {
 	echo
 	
 	while true; do
-                if [[ -z $UBUNTU ]]; then 
+    if [[ -z $UBUNTU ]]; then 
 		   nc -l -p $PORT -vv -c "$0 -c" 2> /dev/null
-                else
-                   echo `$0 -c` | nc -l $PORT
-                fi
+    else
+    	echo `$0 -c` | nc -l $PORT
+    fi
 	
 		trap "killJMeter" HUP
 		trap "killJMeter" INT
@@ -163,7 +173,7 @@ function start_listening_to_jmeter_script() {
 		trap "killJMeter" TERM
 		trap "killJMeter" KILL
 
-                echo -n "."
+    echo -n "."
 	done
 }
 
@@ -171,9 +181,10 @@ function start_listening_to_jmeter_script() {
 # Script execution starts here.
 # -------------------------------------------------------------
 
-while getopts "ch?" OPT; do
+while getopts "chp?" OPT; do
 case "$OPT" in
       "c") collect_data ;;
+			"p") DBPORT="$OPTARG";;
       "h") usage;;
       "?") usage;;
   esac
