@@ -92,6 +92,11 @@ function usage() {
 
 function test_jmeter_existence() {
 
+  if [ ! -z "$JMETER_HOME" ]; then
+    echo -e "JMETER_HOME=$JMETER_HOME"
+    return
+  fi
+
 	for JMETER_MATCH in $(find -L . -iname jmeter | grep bin); do
 		
 		if [[ -f "$JMETER_MATCH" && -x "$JMETER_MATCH" ]]; then
@@ -102,12 +107,12 @@ function test_jmeter_existence() {
 	
 	if [ -z "$JMETER_PATH"   ]; then
 		echo
-		echo "JMeter not found. Put it in the same level as jkm.sh script."
+		echo "JMeter not found. Tell me where is it exporting JMETER_HOME variable."
 		echo
-		echo -e "\tmy_dir/"
-		echo -e "\tmy_dir/jkm.sh"
-		echo -e "\tmy_dir/jakarta-jmeter-2.3.4/"
-		echo
+		#echo -e "\tmy_dir/"
+		#echo -e "\tmy_dir/jkm.sh"
+		#echo -e "\tmy_dir/jakarta-jmeter-2.3.4/"
+		#echo
 		exit -1
 	fi
 	
