@@ -271,12 +271,14 @@ function monitor_jmeter_execution() {
 	             "ServerJVMThWai;" \
 	             "ServerJVMEden;" \
 	             "ServerJVMOld;" \
-	             "ServerJVMPerm")
+	             "ServerJVMPerm;" \
+               "DbConnEstab;" \
+               "DbConnTw" )
             fi
 
             # Collects app server metrics
 	        telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
-	        # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90
+	        # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90; 60; 9
 	        SERVER=`cat $SERVER_FILE | grep \;`
 
             if [ -z "$SERVER" ]; then
