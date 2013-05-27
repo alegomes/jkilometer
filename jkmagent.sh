@@ -128,42 +128,57 @@ function collect_data() {
 	db_conn_estab=$(netstat -an | grep -i -e ":${DBPORT}[ ]*estab" | wc -l)
 	db_conn_tw=$(netstat -an | grep -i -e ":${DBPORT}[ ]*time_wait" | wc -l)
 
-	echo "$httpd_conn;" \
-	  "$tomcat_conn;" \
-	  "$sys_load;" \
-	  "$liferay_threads;" \
-	  "$liferay_runnable_threads;" \
-	  "$liferay_blocked_threads;" \
-	  "$liferay_waiting_threads;" \
-	  "$liferay_eden_usage;" \
-	  "$liferay_old_usage;" \
-	  "$liferay_perm_usage;" \
-	  "$db_conn_estab;" \
-	  "$db_conn_tw"
+	METRICS=$(echo -e "$httpd_conn;" \
+									  "$tomcat_conn;" \
+									  "$sys_load;" \
+									  "$liferay_threads;" \
+									  "$liferay_runnable_threads;" \
+									  "$liferay_blocked_threads;" \
+									  "$liferay_waiting_threads;" \
+									  "$liferay_eden_usage;" \
+									  "$liferay_old_usage;" \
+									  "$liferay_perm_usage"
+						)
+
+	if [[ ! -z "$DBPORT" ]]; then
+	  METRICS=$(echo -e "$METRICS;" \
+						  				"$db_conn_estab;" \
+						  				"$db_conn_tw"
+						  )
+	fi
+
+	echo $METRICS
 
 	exit 0
 }
 
 function start_listening_to_jmeter_script() {
 
-        NC="nc -l -p $PORT -vv -c \"$0 -c\""
+  NC="nc -l -p $PORT -vv -c \"$0 -c\""
         
-        # There must be a better way to check netcat version
-        $(echo $NC) 2> /tmp/nc.log
-        if [[ ! -z $(cat /tmp/nc.log | grep -i 'invalid option') ]]; then
-           UBUNTU="looks like" 
-        fi 
+  # There must be a better way to check netcat version
+  $(echo $NC) 2> /tmp/nc.log
+  if [[ ! -z $(cat /tmp/nc.log | grep -i 'invalid option') ]]; then
+     UBUNTU="looks like" 
+  fi 
 
 	echo 
 	echo "JMeter Agent listeting on port ${PORT}."
 	echo "Now you can start your tests...."
 	echo
 	
+	if [[ -z "$DBPORT" ]]; then
+		CMD="$0 -c"
+	else
+		CMD="$0 -p $DBPORT -c"
+	fi
+
 	while true; do
+
     if [[ -z $UBUNTU ]]; then 
-		   nc -l -p $PORT -vv -c "$0 -c" 2> /dev/null
+		   nc -l -p $PORT -vv -c "$CMD" 2> /dev/null
     else
-    	echo `$0 -c` | nc -l $PORT
+    	echo `$CMD` | nc -l $PORT
     fi
 	
 		trap "killJMeter" HUP
@@ -181,14 +196,17 @@ function start_listening_to_jmeter_script() {
 # Script execution starts here.
 # -------------------------------------------------------------
 
-while getopts "chp?" OPT; do
+while getopts "chp:?" OPT; do
 case "$OPT" in
-      "c") collect_data ;;
-			"p") DBPORT="$OPTARG";;
-      "h") usage;;
-      "?") usage;;
+			p) DBPORT="$OPTARG" ;;
+      c) SINGLE_COLLECT="true" ;;
+      h) usage;;
+      \?) usage;;			
   esac
 done
 
-
-start_listening_to_jmeter_script
+if [[ -z "$SINGLE_COLLECT" ]]; then
+	start_listening_to_jmeter_script
+else
+	collect_data
+fi
