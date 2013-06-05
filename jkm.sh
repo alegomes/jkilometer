@@ -29,6 +29,9 @@ AGENT_PORT=8977
 MAX_CNX_HTTP=0
 MAX_CNX_TOMCAT=0
 MAX_SYS_LOAD=0
+MAX_THREADS_BLOCKED=0
+MAX_DB_CNX_ESTAB=0
+MAX_DB_CNX_TW=0
 
 function killJKM() {
 	IFS=$'\n'
@@ -289,21 +292,34 @@ function monitor_jmeter_execution() {
                 http_connections=$(echo $SERVER | awk '{print $1}')
                 tomcat_connections=$(echo $SERVER | awk '{print $2}')
                 sysload=$(echo $SERVER | awk '{print $3}')
+                th_blocked=$(echo $SERVER | awk '{print $6}')
+                db_cnx_estab=$(echo $SERVER | awk '{print $11}')
+                db_cnx_tw=$(echo $SERVER | awk '{print $12}')
+
                 unset IFS
 
                 if (( $http_connections > $MAX_CNX_HTTP )); then
                     MAX_CNX_HTTP=$http_connections
-                    #echo "max_cnx_http=$MAX_CNX_HTTP"
                 fi
 
                 if (( $tomcat_connections > $MAX_CNX_TOMCAT )); then
                     MAX_CNX_TOMCAT=$tomcat_connections
-                    #echo "max_cnx_tomcat=$MAX_CNX_TOMCAT"
                 fi
 
                 if [[ $(echo "$sysload > $MAX_SYS_LOAD" | bc) -eq 1 ]]; then
                     MAX_SYS_LOAD=$sysload
-                    #echo "max_sys_load=$MAX_SYS_LOAD"
+                fi
+
+                if (( $th_blocked > $MAX_THREADS_BLOCKED )); then
+                    MAX_THREADS_BLOCKED=$th_blocked
+                fi
+
+                if (( $db_cnx_estab > $MAX_DB_CNX_ESTAB )); then
+                    MAX_DB_CNX_ESTAB=$db_cnx_estab
+                fi
+
+                if (( $db_cnx_tw > $MAX_DB_CNX_TW )); then
+                    MAX_DB_CNX_TW=$db_cnx_tw
                 fi
 	        fi
 	  
@@ -382,8 +398,7 @@ function process_jmeter_log() {
 	if [[ "$SUMMARY_RESULTS" =~ $REGEX_COM_PONTO || "$SUMMARY_RESULTS" =~ $REGEX_COM_VIRGULA ]] 
 	then 
 
-		# TODO Implement MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad
-		HEADER="Time,Samples,RampUp,TotalTime,Throughput,Avg,Min,Max,Err,MaxCnxHTTP,MaxCnxTomcat,MaxSysLoad,"
+		HEADER="Time;Samples;RampUp;TotalTime;Throughput;Avg;Min;Max;Err;MaxCnxHTTP;MaxCnxTomcat;MaxSysLoad;MaxThBlocked;MaxDbCnxEstab;MaxDbCnxTw"
 		
 		if [[ ! -z $COMMENT ]]; then
 		   	echo "#" 			>> $SUMMARY_FILE
@@ -392,7 +407,7 @@ function process_jmeter_log() {
 			echo $HEADER   		>> $SUMMARY_FILE
 		fi
 		
-		echo "${START_TIME},${BASH_REMATCH[1]},${RAMP_UP},${BASH_REMATCH[2]},${BASH_REMATCH[3]},${BASH_REMATCH[4]},${BASH_REMATCH[5]},${BASH_REMATCH[6]},${BASH_REMATCH[7]},${MAX_CNX_HTTP},${MAX_CNX_TOMCAT},${MAX_SYS_LOAD}"  >> $SUMMARY_FILE
+		echo "${START_TIME};${BASH_REMATCH[1]};${RAMP_UP};${BASH_REMATCH[2]};${BASH_REMATCH[3]};${BASH_REMATCH[4]};${BASH_REMATCH[5]};${BASH_REMATCH[6]};${BASH_REMATCH[7]};${MAX_CNX_HTTP};${MAX_CNX_TOMCAT};${MAX_SYS_LOAD};${MAX_THREADS_BLOCKED};${MAX_DB_CNX_ESTAB};${MAX_DB_CNX_TW}"  >> $SUMMARY_FILE
 	else
 	    echo "JMeter results not in expected format! Is 'Generate Summary Result' listener present in $TEST_SUITE ?"
 	    echo "-->${SUMMARY_RESULTS}<--"
