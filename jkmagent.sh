@@ -147,6 +147,10 @@ function collect_data() {
 						  )
 	fi
 
+	if [[ -z $httpd_conn || -z $tomcat_conn || -z $sys_load || -z $liferay_threads || -z $liferay_runnable_threads || -z liferay_blocked_threads || -z $liferay_waiting_threads || -z $liferay_eden_usage || -z $liferay_old_usage || -z $liferay_perm_usage ]]; then
+		METRICS="X;X;X;X;X;X;X;X;X;X;X;X"
+	fi
+	
 	echo $METRICS
 
 	exit 0
