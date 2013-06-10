@@ -1,7 +1,7 @@
 input=ARGV[0]
 field=ARGV[1].to_i
 
-if ARGV.empty?
+if ARGV.length == 1
   puts 
   puts "Usage: analyse_by_column <summary_results.csv> <column_number>"
   puts
@@ -48,6 +48,7 @@ input_file.each do |line|
       timestamp=line[0]
       data=line[field]
     else
+#      puts "line=#{line} line.size=#{line.size} data=#{data} line[#{field}]=#{line[field]}"
       data=data+";"+line[field]
     end
 
@@ -57,3 +58,6 @@ input_file.each do |line|
   end
 
 end
+
+# ultima linha
+puts "#{timestamp};\"#{description}\";#{data}"
