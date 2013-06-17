@@ -203,13 +203,12 @@ function update_test_suite() {
 	sed -i$BKP_SUFFIX "s/num_threads\">.*</num_threads\">${NUM_THREADS}</" $TEST_SUITE 
 	sed -i$BKP_SUFFIX "s/ramp_time\">.*</ramp_time\">${RAMP_UP}</" $TEST_SUITE
 
-  if [ "x$TARGET_URL" -eq "x" ]; then
+  if [ "x$TARGET_URL" != "x" ]; then
 
-    if [ ]
-
-    PROTOCOL=
-
-    sed -i$BKP_SUFFIX "s/domain\">.*</domain\">${NUM_THREADS}</" $TEST_SUITE 
+    echo "Changing target URL..."
+    #if [ ]
+    #PROTOCOL=
+    #sed -i$BKP_SUFFIX "s/domain\">.*</domain\">${NUM_THREADS}</" $TEST_SUITE 
   fi
 
 }
