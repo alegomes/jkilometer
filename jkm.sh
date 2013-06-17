@@ -1,4 +1,4 @@
-#!/bin/bash
+  #!/bin/bash
 
 #
 # Copyright 2010 Alexandre Gomes
@@ -47,9 +47,9 @@ function killJKM() {
 		kill -9 $JMETER_PID
 	done
 	
-	for p in $(ps axu | grep -i jkm.sh | grep -v $0); do
+	for p in $(tack); do
 		JKILOMETER_PID=$(echo $p | awk '{print $2}')
-		echo "Killing JKilometer Script on process $JKILOMETER_PID"
+		echo -e "\nKilling JKilometer Script on process $JKILOMETER_PID"
 		kill -9 $JKILOMETER_PID
 	done
 	
@@ -60,37 +60,39 @@ function usage() {
    	echo 
    	echo "Usage:  ./jkm.sh -t <jmeter_script.jmx> -T <num_of_threads> -r <ramp_up> [-S <appserver_address> -R ip1,ip2,ip3... -c comment -H <proxy_address> -P <proxy_port> ] | -s | -h?"
    	echo 
-	echo -e "\t ** MASTER MODE **"
-	echo 
-	echo -e "\t   Required Arguments"
-	echo -e "\t   -------------------"
+  	echo -e "\t ** MASTER MODE **"
+	  echo 
+	  echo -e "\t   Required Arguments"
+	  echo -e "\t   -------------------"
    	echo -e "\t   -t A JMeter test plan JMX file"
    	echo
    	echo -e "\t   -T The number of threads to run the test plan"
    	echo
    	echo -e "\t   -r The time (in seconds) JMeter has to start all the specified threads"
    	echo
-	echo -e "\t   Optional Arguments"
-	echo -e "\t   -------------------"
+	  echo -e "\t   Optional Arguments"
+	  echo -e "\t   -------------------"
    	echo -e "\t   -S The Java server you wish to monitor during the test plan execution (jkmagent.sh needed)"
-	echo
-	echo -e "\t   -R Set of JMeter Slaves addresses to help on test plan execution !!! NOT TESTED !!!"
-	echo
-	echo -e "\t   -c A useful comment to distinguish previous test execution from the next one"
-	echo
-	echo -e "\t   -H Proxy server address"
-	echo
-	echo -e "\t   -P Proxy server port"
-	echo
-	echo -e "\t ** SLAVE MODE **"
-	echo
-	echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html) !!! NOT TESTED !!!"
-	echo
-	echo -e "\t ** HELP MODE **"
-	echo
-	echo -e "\t   -h or -? Prints this help message."
-	echo
-	exit -1
+  	echo
+  	echo -e "\t   -R Set of JMeter Slaves addresses to help on test plan execution !!! NOT TESTED !!!"
+  	echo
+  	echo -e "\t   -c A useful comment to distinguish previous test execution from the next one"
+  	echo
+  	echo -e "\t   -H Proxy server address"
+  	echo
+  	echo -e "\t   -P Proxy server port"
+    echo
+    echo -e "\t   -u Resource to be stressed (e.g. http://10.0.0.10:8080/pagina.html)"
+  	echo
+  	echo -e "\t ** SLAVE MODE **"
+  	echo
+  	echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html) !!! NOT TESTED !!!"
+  	echo
+  	echo -e "\t ** HELP MODE **"
+  	echo
+  	echo -e "\t   -h or -? Prints this help message."
+  	echo
+  	exit -1
 }
 
 function test_jmeter_existence() {
@@ -201,6 +203,15 @@ function update_test_suite() {
 	sed -i$BKP_SUFFIX "s/num_threads\">.*</num_threads\">${NUM_THREADS}</" $TEST_SUITE 
 	sed -i$BKP_SUFFIX "s/ramp_time\">.*</ramp_time\">${RAMP_UP}</" $TEST_SUITE
 
+  if [ "x$TARGET_URL" -eq "x" ]; then
+
+    if [ ]
+
+    PROTOCOL=
+
+    sed -i$BKP_SUFFIX "s/domain\">.*</domain\">${NUM_THREADS}</" $TEST_SUITE 
+  fi
+
 }
 
 function save_test_metrics() {
@@ -227,103 +238,99 @@ function monitor_jmeter_execution() {
     i=0
 	while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
 
-        if [ "$i" -eq "0" ]; then
-            FIRST_LINE=true
-        fi
-  
-        let title=i%15
-        if [ "$title" -eq "0" ]; then
-            HAS_HEADER=true
-        else
-            HAS_HEADER=false
-        fi
+    if [ "$i" -eq "0" ]; then
+        FIRST_LINE=true
+    fi
 
-        NOW=`date '+%H:%M:%S'`
+    let title=i%15
+    if [ "$title" -eq "0" ]; then
+        HAS_HEADER=true
+    else
+        HAS_HEADER=false
+    fi
 
-        # awk removes \t from wc output
-        JMETER_TH_STARTED=$(cat jmeter.log | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
-        # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
-        JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
+    NOW=`date '+%H:%M:%S'`
+
+    # awk removes \t from wc output
+    JMETER_TH_STARTED=$(cat jmeter.log | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
+    # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
+    JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
 
 		JMETER_TH_RATIO=0
 		if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
-            JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
-        fi
+      JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
+    fi
 
-        JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
-        JMETER_ERRORS_TIMEOUT=$(grep -i SocketTimeoutException $LOG_FILE | wc -l)
+    JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
+    JMETER_ERRORS_TIMEOUT=$(grep -i SocketTimeoutException $LOG_FILE | wc -l)
 
 		JMETER_ERRORS_TIMEOUT_RATIO=0
-        if [ "$JMETER_ERRORS_TIMEOUT" -gt "0" ]; then 
-            JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_STARTED} ))
+    if [ "$JMETER_ERRORS_TIMEOUT" -gt "0" ]; then 
+        JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_STARTED} ))
+    fi
+
+    SERVER=""
+
+    # TODO Extract to function
+    if [ ! -z "$JAVA_SERVER" ]; then
+
+      if  $FIRST_LINE; then
+          HEADER=$(echo -e "${LOCAL_HEADER};" \
+         "ServerCnx:80;" \
+         "ServerCnx:8080;" \
+ 		     "ServerSysLoad;" \
+         "ServerJVMThAll;" \
+         "ServerJVMThRun;" \
+         "ServerJVMThBlk;" \
+         "ServerJVMThWai;" \
+         "ServerJVMEden;" \
+         "ServerJVMOld;" \
+         "ServerJVMPerm;" \
+         "DbConnEstab;" \
+         "DbConnTw" )
+      fi
+
+        # Collects app server metrics
+      telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
+      # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90; 60; 9
+      SERVER=`cat $SERVER_FILE | grep \;`
+
+      if [ -z "$SERVER" ]; then
+        SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
+      else
+        http_connections=$(echo $SERVER | awk -F\; '{print $1}')
+        tomcat_connections=$(echo $SERVER | awk -F\; '{print $2}')
+        sysload=$(echo $SERVER | awk -F\; '{print $3}')
+        th_blocked=$(echo $SERVER | awk -F\; '{print $6}')
+        db_cnx_estab=$(echo $SERVER | awk -F\; '{print $11}')
+        db_cnx_tw=$(echo $SERVER | awk -F\; '{print $12}')
+
+        # Server metrics maximum value
+        if (( $http_connections > $MAX_CNX_HTTP )); then
+            MAX_CNX_HTTP=$http_connections
         fi
 
-        SERVER=""
+        if (( $tomcat_connections > $MAX_CNX_TOMCAT )); then
+            MAX_CNX_TOMCAT=$tomcat_connections
+        fi
 
-        # TODO Extract to function
-        if [ ! -z "$JAVA_SERVER" ]; then
+        if [[ $(echo "$sysload > $MAX_SYS_LOAD" | bc) -eq 1 ]]; then
+            MAX_SYS_LOAD=$sysload
+        fi
 
-            if  $FIRST_LINE; then
-                HEADER=$(echo -e "${LOCAL_HEADER};" \
-	             "ServerCnx:80;" \
-	             "ServerCnx:8080;" \
-       		     "ServerSysLoad;" \
-	             "ServerJVMThAll;" \
-	             "ServerJVMThRun;" \
-	             "ServerJVMThBlk;" \
-	             "ServerJVMThWai;" \
-	             "ServerJVMEden;" \
-	             "ServerJVMOld;" \
-	             "ServerJVMPerm;" \
-               "DbConnEstab;" \
-               "DbConnTw" )
-            fi
+        if (( $th_blocked > $MAX_THREADS_BLOCKED )); then
+            MAX_THREADS_BLOCKED=$th_blocked
+        fi
 
-            # Collects app server metrics
-	        telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
-	        # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90; 60; 9
-	        SERVER=`cat $SERVER_FILE | grep \;`
+        if (( $db_cnx_estab > $MAX_DB_CNX_ESTAB )); then
+            MAX_DB_CNX_ESTAB=$db_cnx_estab
+        fi
 
-            if [ -z "$SERVER" ]; then
-                  SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
-	        else
-	            # Server metrics maximum value
-                IFS=\; 
-                http_connections=$(echo $SERVER | awk '{print $1}')
-                tomcat_connections=$(echo $SERVER | awk '{print $2}')
-                sysload=$(echo $SERVER | awk '{print $3}')
-                th_blocked=$(echo $SERVER | awk '{print $6}')
-                db_cnx_estab=$(echo $SERVER | awk '{print $11}')
-                db_cnx_tw=$(echo $SERVER | awk '{print $12}')
-
-                unset IFS
-
-                if (( $http_connections > $MAX_CNX_HTTP )); then
-                    MAX_CNX_HTTP=$http_connections
-                fi
-
-                if (( $tomcat_connections > $MAX_CNX_TOMCAT )); then
-                    MAX_CNX_TOMCAT=$tomcat_connections
-                fi
-
-                if [[ $(echo "$sysload > $MAX_SYS_LOAD" | bc) -eq 1 ]]; then
-                    MAX_SYS_LOAD=$sysload
-                fi
-
-                if (( $th_blocked > $MAX_THREADS_BLOCKED )); then
-                    MAX_THREADS_BLOCKED=$th_blocked
-                fi
-
-                if (( $db_cnx_estab > $MAX_DB_CNX_ESTAB )); then
-                    MAX_DB_CNX_ESTAB=$db_cnx_estab
-                fi
-
-                if (( $db_cnx_tw > $MAX_DB_CNX_TW )); then
-                    MAX_DB_CNX_TW=$db_cnx_tw
-                fi
-	        fi
-	  
-	    fi
+        if (( $db_cnx_tw > $MAX_DB_CNX_TW )); then
+            MAX_DB_CNX_TW=$db_cnx_tw
+        fi
+      fi
+    fi
    	  
 	    line_with_header=$(echo $HEADER"\n" \
 	            "${NOW};" \
@@ -431,6 +438,10 @@ function save_errors() {
 	 # <httpSample t="93006" lt="93006" ts="1276713131811" s="true" lb="http://proxyerror.inep.gov.br/index.html?Time=16%2FJun%2F2010%3A15%3A32%3A01%20-0300&amp;ID=0042687649&amp;Client_IP=172.29.11.193&amp;User=-&amp;Site=172.29.9.32&amp;URI=web%2Fguest%3Bjsessionid%3D8B10290211FEC52FBC7CD7E4A6C57F39&amp;Status_Code=502&amp;Decision_Tag=ALLOW_CUSTOMCAT_1090519041-DefaultGroup-Servidores_Vips-NONE-NONE-DefaultRouting&amp;URL_Cat=Sites%20Liberados&amp;WBRS=ns&amp;DVS_Verdict=-&amp;DVS_ThreatName=-&amp;Reauth_URL=-" rc="200" rm="OK" tn="Thread Group 1-5630" dt="text" by="3950"/>
 }
 
+function backup_jmeter_log_file {
+  cp $LOG_FILE ${LOG_FILE}.$(date +%Y%m%d%H%M)
+}
+
 function test_suite_existence() {
 
 	if ! [ -a "$TEST_SUITE" ]; then
@@ -470,6 +481,8 @@ function run_jmeter_client() {
 	process_jmeter_log
 	
 	save_errors
+
+  backup_jmeter_log_file
 	
 	exit $?
 
@@ -501,19 +514,20 @@ if [[ ! -e reports ]]; then mkdir -v reports; fi
 	
 # Check passed arguments
 
-while getopts "t:T:r:R:c:H:P:S:sh?" OPT; do
+while getopts "t:T:r:R:c:h:H:P:S:sh?" OPT; do
   case "$OPT" in
-      "t") TEST_SUITE="$OPTARG" ;;
+    "t") TEST_SUITE="$OPTARG" ;;
  	  "T") NUM_THREADS="$OPTARG" ;;
-      "r") RAMP_UP="$OPTARG" ;;
-      "R") JMETER_ARGS="-R $OPTARG" ;;
+    "r") RAMP_UP="$OPTARG" ;;
+    "R") JMETER_ARGS="-R $OPTARG" ;;
 	  "c") COMMENT="$OPTARG" ;;
 	  "H") PROXY_ADDR="$OPTARG" ;;
 	  "P") PROXY_PORT="$OPTARG" ;;
 	  "S") JAVA_SERVER="$OPTARG" ;;
 	  "s") run_jmeter_server ;;
-      "h") usage;;
-      "?") usage;;
+    "u") TARGET_URL="$OPTARG" ;;
+    "h") usage;;
+    "?") usage;;
   esac
 done
 
