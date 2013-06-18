@@ -50,7 +50,7 @@ function killJKM() {
 		kill -9 $JMETER_PID
 	done
 	
-	for p in $(tack); do
+	for p in $(ps aux | grep jkm.sh | grep -v grep); do
 		JKILOMETER_PID=$(echo $p | awk '{print $2}')
 		echo -e "\nKilling JKilometer Script on process $JKILOMETER_PID"
 		kill -9 $JKILOMETER_PID
