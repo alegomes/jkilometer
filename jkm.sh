@@ -199,7 +199,7 @@ function update_test_suite() {
     # Eh Linux	
     SED_BKP_DIRECTIVE="-i$BKP_SUFFIX"
 	else
-    # Eh Max
+    # Eh Mac
     SED_BKP_DIRECTIVE="-i $BKP_SUFFIX"
 	fi
 
