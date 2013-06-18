@@ -267,7 +267,7 @@ function monitor_jmeter_execution() {
     fi
 
     # awk removes \t from wc output
-    JMETER_TH_STARTED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
+    JMETER_TH_STARTED=$(cat $JMETER_LOG_FILE | grep "jmeter.threads.JMeterThread: Thread started" )
     # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
     #JMETER_TH_FINISHED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
     
