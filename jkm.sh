@@ -188,25 +188,29 @@ function test_parameters_consistence() {
 
 function update_test_suite() {
 
+  BKP_SUFFIX=".bkp-`date +%Y%m%d%H%M`"
+
 	# No Mac, a sintaxe eh 'sed -i SUFIXO ...'
 	# No Linux, a sintaxe eh 'sed -iSUFIXO ...'
 	# putafaltadesacanagem
 
 	MAC=`uname -a | grep -i darwin`
-	if [ -z "$MAC" ]; then
+	if [ -n "$MAC" ]; then
 		# Eh Mac	
-		BKP_SUFFIX=".bkp-`date +%Y%m%d%H%M`"
+    SED_BKP_DIRECTIVE="-i$BKP_SUFFIX"
 	else
 	    # Eh Linux
-		BKP_SUFFIX=" .bkp-`date +%Y%m%d%H%M`"
+    SED_BKP_DIRECTIVE="-i $BKP_SUFFIX"
 	fi
 
 	# Change the number of threads and ramp up settings
 
-	sed -i$BKP_SUFFIX \
+	sed $SED_BKP_DIRECTIVE \
       -e "s/num_threads\">.*</num_threads\">${NUM_THREADS}</" \
 	    -e "s/ramp_time\">.*</ramp_time\">${RAMP_UP}</" \
       $TEST_SUITE
+
+  echo "TEST_SUITE[$TEST_SUITE]"
 
   mv $TEST_SUITE$BKP_SUFFIX $BKP_DIR
 
@@ -551,7 +555,14 @@ function run_jmeter_client() {
 	# else
 	# 	$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE $REMOTE_SERVERS > $TMP_FILE &
 	# fi
-	sleep 5 # Time before jmeter.log creation
+
+  # Time before jmeter.log creation
+  (( i = 0 ))
+  echo "Waiting for $LOG_FILE file creation..."
+  while [ ! -e ${LOG_FILE} ] && [ $i -lt  30 ]; do
+	 sleep 2 
+   (( i++ ))
+  done
 	
 	init_test_report
 	
