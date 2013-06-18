@@ -84,10 +84,10 @@ function usage() {
     echo
     echo -e "\t   -u Resource to be stressed (e.g. http://10.0.0.10:8080/pagina.html)"
   	echo
-  	echo -e "\t ** SLAVE MODE **"
-  	echo
-  	echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html) !!! NOT TESTED !!!"
-  	echo
+  	# echo -e "\t ** SLAVE MODE **"
+  	# echo
+  	# echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html) !!! NOT TESTED !!!"
+  	# echo
   	echo -e "\t ** HELP MODE **"
   	echo
   	echo -e "\t   -h or -? Prints this help message."
@@ -210,7 +210,6 @@ function update_test_suite() {
     #PROTOCOL=
     #sed -i$BKP_SUFFIX "s/domain\">.*</domain\">${NUM_THREADS}</" $TEST_SUITE 
   fi
-
 }
 
 function save_test_metrics() {
@@ -466,10 +465,20 @@ function run_jmeter_client() {
 
 	rm jmeter.log &> /dev/null
 
+  # JMETER_CMD="$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE"
+
+  # if [ -n "$PROXY_ADDR" ]; then
+  #  JMETER_CMD=$JMETER_CMD" -H $PROXY_ADDR -P $PROXY_PORT"
+  # fi
+
+  # if [ -n "$REMOTE_SERVERS" ]; then
+  #   JMETER_CMD=$JMETER_CMD" $REMOTE_SERVERS"
+  # fi
+
 	if [ ! -z "$PROXY_ADDR" ]; then
 		$JMETER_PATH -n -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
 	else
-		$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE > $TMP_FILE &
+		$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE $REMOTE_SERVERS > $TMP_FILE &
 	fi
 	sleep 3 # Time before jmeter.log creation
 	
@@ -513,17 +522,16 @@ if [[ ! -e reports ]]; then mkdir -v reports; fi
 	
 # Check passed arguments
 
-while getopts "t:T:r:R:c:h:H:P:S:sh?" OPT; do
+while getopts "t:T:r:R:c:h:H:P:Sh?" OPT; do
   case "$OPT" in
     "t") TEST_SUITE="$OPTARG" ;;
  	  "T") NUM_THREADS="$OPTARG" ;;
     "r") RAMP_UP="$OPTARG" ;;
-    "R") JMETER_ARGS="-R $OPTARG" ;;
+    "R") REMOTE_SERVERS="-R$OPTARG" ;;
 	  "c") COMMENT="$OPTARG" ;;
 	  "H") PROXY_ADDR="$OPTARG" ;;
 	  "P") PROXY_PORT="$OPTARG" ;;
 	  "S") JAVA_SERVER="$OPTARG" ;;
-	  "s") run_jmeter_server ;;
     "u") TARGET_URL="$OPTARG" ;;
     "h") usage;;
     "?") usage;;
