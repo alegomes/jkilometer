@@ -429,7 +429,7 @@ function monitor_jmeter_execution() {
     NOW=$(date +%s)
     (( TIME_SINCE_LAST_FINISHED = NOW - TIME_LAST_FINISHED ))
     if [ $TIME_SINCE_LAST_FINISHED -gt $TIMEOUT ]; then
-      TIME_TO_TIMEOUT=true;
+      TIME_TO_TIMEOUT="$TIME_SINCE_LAST_FINISHED > $TIMEOUT";
     fi
 
     sleep 5
@@ -438,6 +438,7 @@ function monitor_jmeter_execution() {
 
   if [ -n $TIME_TO_TIMEOUT ]; then
     echo "Test timed out with $JMETER_TH_STARTED started and $JMETER_TH_FINISHED finished threads."
+    echo "($TIME_TO_TIMEOUT)"
   fi
 
 }
