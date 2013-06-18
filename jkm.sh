@@ -436,7 +436,7 @@ function process_jmeter_log() {
 
 	NUM_SAMPLES=`cat $TEST_SUITE | grep \<HTTPSampler | wc -l`
 	TOTAL_SAMPLES=$(( NUM_SAMPLES * NUM_THREADS ))
-	SUMMARY_RESULTS=`grep -E $REGEX $TMP_FILE`
+	SUMMARY_RESULTS=`grep -E "$REGEX" $TMP_FILE`
   #REGEX_COM_PONTO="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).*" 
   #REGEX_COM_VIRGULA="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9,]+)s[\ ]+=[\ ]+([0-9,]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9,]+)%\).*"
 
