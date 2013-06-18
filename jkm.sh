@@ -33,6 +33,9 @@ MAX_THREADS_BLOCKED=0
 MAX_DB_CNX_ESTAB=0
 MAX_DB_CNX_TW=0
 
+# Timeout in seconds
+TIMEOUT=300
+
 function killJKM() {
 	IFS=$'\n'
 	for p in $(ps axu | grep -i jmeter | grep $TEST_SUITE | grep -v $0); do
@@ -232,9 +235,9 @@ function monitor_jmeter_execution() {
 		 "JMeterThRatio;" \
 		 "JMeterErrors(timeout)")
 
-  JMETER_TH_FINISHED="0"
+  JMETER_TH_FINISHED="-1"
   i=0
-  while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
+  while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ] && [ -n $TIME_TO_TIMEOUT ]; do
 
     if [ "$i" -eq "0" ]; then
         FIRST_LINE=true
@@ -267,12 +270,20 @@ function monitor_jmeter_execution() {
     JMETER_TH_STARTED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
     # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
     #JMETER_TH_FINISHED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
+    
+    LAST_JMETER_TH_FINISHED=$JMETER_TH_FINISHED
     JMETER_TH_FINISHED=$(cat $LOG_FILE | wc -l)
+    
+    if [ $JMETER_TH_FINISHED -ne $LAST_JMETER_TH_FINISHED ]; then
+      TIME_LAST_FINISHED=$(date +%s)
+    fi
 
   	JMETER_TH_RATIO=0
   	if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
       JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
     fi
+
+    #### NAO TA LEGAL >>>>>
 
     JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
     JMETER_ERRORS_TIMEOUT=$(grep -i SocketTimeoutException $LOG_FILE | wc -l)
@@ -281,6 +292,8 @@ function monitor_jmeter_execution() {
     if [ "$JMETER_ERRORS_TIMEOUT" -gt "0" ]; then 
         JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_STARTED} ))
     fi
+
+    ##### <<<<<<<
 
     SERVER=""
 
@@ -308,7 +321,7 @@ function monitor_jmeter_execution() {
       # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90; 60; 9
       SERVER=`cat $SERVER_FILE | grep \;`
 
-      if [ "$SERVER" != "X;X;X;X;X;X;X;X;X;X;X;X" ]; then
+      if [ -n "$SERVER" ] && [ "$SERVER" != "X;X;X;X;X;X;X;X;X;X;X;X" ]; then
       #   SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
       # else
         http_connections=$(echo $SERVER | awk -F\; '{print $1}')
@@ -345,58 +358,58 @@ function monitor_jmeter_execution() {
       fi
     fi
    	  
-      line_with_header=$(echo $HEADER"\n" \
-              "${NOW};" \
-           	    "${JMETER_TH_STARTED};" \
-              "${JMETER_TH_FINISHED};" \
-  	        "${JMETER_TH_RATIO}%;" \
-  	        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
-  	        "${SERVER}")
+    line_with_header=$(echo $HEADER"\n" \
+          "${NOW};" \
+          "${JMETER_TH_STARTED};" \
+          "${JMETER_TH_FINISHED};" \
+          "${JMETER_TH_RATIO}%;" \
+          "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
+          "${SERVER}")
 
-        line_no_header=$(echo "${NOW};" \
-  		        "${JMETER_TH_STARTED};" \
-              "${JMETER_TH_FINISHED};" \
-  	        "${JMETER_TH_RATIO}%;" \
-  	        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
-  		        "${SERVER}")
+    line_no_header=$(echo "${NOW};" \
+	        "${JMETER_TH_STARTED};" \
+          "${JMETER_TH_FINISHED};" \
+          "${JMETER_TH_RATIO}%;" \
+          "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
+	        "${SERVER}")
 
     #
     # Imprimir ou nao imprimir o cabecalho?
     #
 
-        if $HAS_HEADER; then
+    if $HAS_HEADER; then
 
-            # In the log file, header must be printed only once 
-            if $FIRST_LINE; then 
-                 TEST_METRICS="$line_with_header"; 
-            fi
-            
-  	    # With header
-            echo -e "$line_with_header" | column -t -s\; 
-            
-        else 
-        
-          TEST_METRICS="$line_no_header"
-
-             # Without header	
-             echo -e "$line_with_header" | column -t -s\; | grep -v JMeterThStarted
-             
+        # In the log file, header must be printed only once 
+        if $FIRST_LINE; then 
+             TEST_METRICS="$line_with_header"; 
         fi
+        
+    # With header
+        echo -e "$line_with_header" | column -t -s\; 
+        
+    else 
+    
+      TEST_METRICS="$line_no_header"
 
-        save_test_metrics "$TEST_METRICS"
+         # Without header	
+         echo -e "$line_with_header" | column -t -s\; | grep -v JMeterThStarted
+         
+    fi
 
-        line=""
+    save_test_metrics "$TEST_METRICS"
 
-        trap "killJKM" HUP
-        trap "killJKM" INT
-        trap "killJKM" QUIT
-        trap "killJKM" PIPE
-        trap "killJKM" TERM
-        trap "killJKM" KILL
+    line=""
 
-        sleep 5
+    (( i = i + 1 ))
 
-        (( i = i + 1 ))
+    NOW=$(date +%s)
+    (( TIME_SINCE_LAST_FINISHED = NOW - TIME_LAST_FINISHED ))
+    if [ $TIME_SINCE_LAST_FINISHED -gt $TIMEOUT ]; then
+      TIME_TO_TIMEOUT=true;
+    fi
+
+    sleep 5
+
   done
 
 
@@ -510,12 +523,11 @@ function run_jmeter_client() {
 	
 	monitor_jmeter_execution
 
-  backup_log_files
-
 	process_jmeter_log
 	
 	save_errors
 
+  backup_log_files
 	
 	exit $?
 
@@ -524,6 +536,13 @@ function run_jmeter_client() {
 # ---------------------------------------------------------
 # Script starts here
 # ---------------------------------------------------------
+
+trap "killJKM" HUP
+trap "killJKM" INT
+trap "killJKM" QUIT
+trap "killJKM" PIPE
+trap "killJKM" TERM
+trap "killJKM" KILL
 
 test_jmeter_existence
 
