@@ -241,7 +241,7 @@ function monitor_jmeter_execution() {
 
   JMETER_TH_FINISHED="-1"
   i=0
-  while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ] && [ -n $TIME_TO_TIMEOUT ]; do
+  while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ] && [ -z $TIME_TO_TIMEOUT ]; do
 
     if [ "$i" -eq "0" ]; then
         FIRST_LINE=true
@@ -292,7 +292,6 @@ function monitor_jmeter_execution() {
     JMETER_ERRORS=$(grep -v 200,OK $LOG_FILE | wc -l)
 
 
-
     # Timeout errors
     JMETER_ERRORS_TIMEOUT=$(grep SocketTimeoutException $LOG_FILE | wc -l)
   	JMETER_ERRORS_TIMEOUT_RATIO=0
@@ -313,6 +312,8 @@ function monitor_jmeter_execution() {
     if [ "$JMETER_ERRORS_SOCKET" -gt "0" ]; then 
         JMETER_ERRORS_SOCKET_RATIO=$((  100*${JMETER_ERRORS_SOCKET}/${JMETER_TH_FINISHED} ))
     fi
+
+    # HttpHostConnectException
 
     SERVER=""
 
@@ -431,6 +432,9 @@ function monitor_jmeter_execution() {
 
   done
 
+  if [ -n $TIME_TO_TIMEOUT ]; then
+    echo "Test timed out with $JMETER_TH_STARTED started and $JMETER_TH_FINISHED finished threads."
+  fi
 
 }
 
