@@ -34,7 +34,7 @@ MAX_DB_CNX_ESTAB=0
 MAX_DB_CNX_TW=0
 
 # Timeout in seconds
-TIMEOUT=300
+TIMEOUT=1800
 
 function killJKM() {
 	IFS=$'\n'
@@ -245,7 +245,7 @@ function monitor_jmeter_execution() {
 
   JMETER_TH_FINISHED="-1"
   i=0
-  while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ] && [ -z $TIME_TO_TIMEOUT ]; do
+  while [ $JMETER_TH_FINISHED -lt $NUM_TOTAL_THREADS ] && [ -z $TIME_TO_TIMEOUT ]; do
 
     if [ "$i" -eq "0" ]; then
         FIRST_LINE=true
@@ -628,6 +628,9 @@ while getopts "t:T:r:R:c:h:H:P:S:h?" OPT; do
     "?") usage;;
   esac
 done
+
+SERVERS_QTD=$(( $(echo $REMOTE_SERVERS | grep -o , | wc -l) + 1 ))
+NUM_TOTAL_THREADS=$(( NUM_THREADS * SERVERS_QTD))
 
 test_parameters_consistence
 
