@@ -203,8 +203,12 @@ function update_test_suite() {
 
 	# Change the number of threads and ramp up settings
 
-	sed -i$BKP_SUFFIX "s/num_threads\">.*</num_threads\">${NUM_THREADS}</" $TEST_SUITE 
-	sed -i$BKP_SUFFIX "s/ramp_time\">.*</ramp_time\">${RAMP_UP}</" $TEST_SUITE
+	sed -i$BKP_SUFFIX \
+      -e "s/num_threads\">.*</num_threads\">${NUM_THREADS}</" \
+	    -e "s/ramp_time\">.*</ramp_time\">${RAMP_UP}</" \
+      $TEST_SUITE
+
+  mv $TEST_SUITE$BKP_SUFFIX $BKP_DIR
 
   if [ "x$TARGET_URL" != "x" ]; then
 
@@ -376,7 +380,7 @@ function monitor_jmeter_execution() {
           "${JMETER_TH_STARTED};" \
           "${JMETER_TH_FINISHED};" \
           "${JMETER_TH_RATIO}%;" \
-          "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
+          "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%,${JMETER_ERRORS_NOHTTPRESPONSE_RATIO}%,${JMETER_ERRORS_SOCKET_RATIO}%);" \
           "${SERVER}")
 
     line_no_header=$(echo "${NOW};" \
@@ -392,20 +396,20 @@ function monitor_jmeter_execution() {
 
     if $HAS_HEADER; then
 
-        # In the log file, header must be printed only once 
-        if $FIRST_LINE; then 
-             TEST_METRICS="$line_with_header"; 
-        fi
-        
-    # With header
-        echo -e "$line_with_header" | column -t -s\; 
+      # In the log file, header must be printed only once 
+      if $FIRST_LINE; then 
+        TEST_METRICS="$line_with_header"; 
+      fi
+      
+      # With header
+      echo -e "$line_with_header" | column -t -s\; 
         
     else 
     
       TEST_METRICS="$line_no_header"
 
-         # Without header	
-         echo -e "$line_with_header" | column -t -s\; | grep -v JMeterThStarted
+       # Without header	
+       echo -e "$line_with_header" | column -t -s\; | grep -v JMeterThStarted
          
     fi
 
@@ -451,17 +455,17 @@ function process_jmeter_log() {
 		HEADER="Time;Samples;RampUp;TotalTime;Throughput;Avg;Min;Max;Err;MaxCnxHTTP;MaxCnxTomcat;MaxSysLoad;MaxThBlocked;MaxDbCnxEstab;MaxDbCnxTw"
 		
 		if [[ ! -z $COMMENT ]]; then
-		   	echo "#" 			>> $SUMMARY_FILE
+		  echo "#" 		       	>> $SUMMARY_FILE
 			echo "# $COMMENT" 	>> $SUMMARY_FILE 
-			echo "#"  			>> $SUMMARY_FILE
-			echo $HEADER   		>> $SUMMARY_FILE
+			echo "#"  		     	>> $SUMMARY_FILE
+			echo $HEADER     		>> $SUMMARY_FILE
 		fi
 		
 		echo "${START_TIME};${BASH_REMATCH[1]};${RAMP_UP};${BASH_REMATCH[2]};${BASH_REMATCH[3]};${BASH_REMATCH[4]};${BASH_REMATCH[5]};${BASH_REMATCH[6]};${BASH_REMATCH[7]};${MAX_CNX_HTTP};${MAX_CNX_TOMCAT};${MAX_SYS_LOAD};${MAX_THREADS_BLOCKED};${MAX_DB_CNX_ESTAB};${MAX_DB_CNX_TW}"  >> $SUMMARY_FILE
 	else
 	    echo "JMeter results not in expected format! Is 'Generate Summary Result' listener present in $TEST_SUITE ?"
 	    echo "-->${SUMMARY_RESULTS}<--"
-	    exit -1
+	    return
 	fi
 
 	echo "---------------------------------"
@@ -474,7 +478,8 @@ function process_jmeter_log() {
 
 function save_errors() {
 
-	grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 > $ERRORS_FILE
+	#grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 > $ERRORS_FILE
+  grep -v 200,OK $LOG_FILE > $ERRORS_FILE
 	
 	# [TODO] How to handle things like this?
 	
@@ -482,11 +487,13 @@ function save_errors() {
 }
 
 function backup_log_files {
+  mkdir -p bkps $> /dev/null
+
   NOW=$(date +%Y%m%d%H%M)
   echo "Backing up $LOG_FILE, $TMP_FILE and $JMETER_LOG_FILE in timestamp $NOW"
-  mv $LOG_FILE ${LOG_FILE}.$NOW
-  mv $TMP_FILE ${TMP_FILE}.$NOW
-  mv $JMETER_LOG_FILE ${JMETER_LOG_FILE}.$NOW
+  mv $LOG_FILE        $BKP_DIR/${LOG_FILE}.$NOW
+  mv $TMP_FILE        $BKP_DIR/${TMP_FILE}.$NOW
+  mv $JMETER_LOG_FILE $BKP_DIR/${JMETER_LOG_FILE}.$NOW
 }
 
 function delete_log_files {
@@ -578,6 +585,7 @@ SERVER_FILE=".server_metrics.jmeter"
 SUMMARY_FILE="reports/summary_results.csv"
 TEST_REPORT="reports/tests_results.csv"
 ERRORS_FILE="reports/errors.txt"
+BKP_DIR="bkps" 
 
 rm $LOG_FILE &> /dev/null
 
