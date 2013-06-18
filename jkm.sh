@@ -432,19 +432,20 @@ function process_jmeter_log() {
 
 	# Process JMeter client result
  
+  REGEX='Generate Summary Results =[ ]+([0-9]+) in[ ]+ ([0-9.,]+)s =[ ]+([0-9.,]+)\/s Avg:[ ]+([0-9]+) Min:[ ]+([0-9]+) Max:[ ]+([0-9]+) Err:[ ]+ [0-9] \(([0-9.,]+)%\)'
+
 	NUM_SAMPLES=`cat $TEST_SUITE | grep \<HTTPSampler | wc -l`
 	TOTAL_SAMPLES=$(( NUM_SAMPLES * NUM_THREADS ))
-	# SUMMARY_RESULTS=`grep "$TOTAL_SAMPLES in" $TMP_FILE`
+	SUMMARY_RESULTS=`grep -E $REGEX $TMP_FILE`
   #REGEX_COM_PONTO="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).*" 
   #REGEX_COM_VIRGULA="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9,]+)s[\ ]+=[\ ]+([0-9,]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9,]+)%\).*"
-  REGEX=             'Generate Summary Results =[ ]+([0-9]+) in[ ]+ ([0-9.,]+)s =[ ]+([0-9.,]+)\/s Avg:[ ]+([0-9]+) Min:[ ]+([0-9]+) Max:[ ]+([0-9]+) Err:[ ]+ [0-9] \(([0-9.,]+)%\)'
 
 	# Parse JMeter 'Generate Summary Results' listener output.
 	# e.g Generate Summary Results = 10 in 1.1s = 9.5/s Avg: 133 Min: 93 Max: 165 Err: 0 (0.00%)
 
 	# Debian requires quotes around the regex. Does it work on MacOS et. al.?  
-	#if [[ "$SUMMARY_RESULTS" =~ $REGEX_COM_PONTO || "$SUMMARY_RESULTS" =~ $REGEX_COM_VIRGULA ]] 
-  if [[ grep -E $REGEX $TMP_FILE ]] 
+	# if [[ "$SUMMARY_RESULTS" =~ $REGEX_COM_PONTO || "$SUMMARY_RESULTS" =~ $REGEX_COM_VIRGULA ]] 
+  if [[ "$SUMMARY_RESULTS" =~ $REGEX ]] 
 	then 
 
 		HEADER="Time;Samples;RampUp;TotalTime;Throughput;Avg;Min;Max;Err;MaxCnxHTTP;MaxCnxTomcat;MaxSysLoad;MaxThBlocked;MaxDbCnxEstab;MaxDbCnxTw"
