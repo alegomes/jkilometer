@@ -291,25 +291,27 @@ function monitor_jmeter_execution() {
     #JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
     JMETER_ERRORS=$(grep -v 200,OK $LOG_FILE | wc -l)
 
+
+    
     # Timeout errors
     JMETER_ERRORS_TIMEOUT=$(grep SocketTimeoutException $LOG_FILE | wc -l)
   	JMETER_ERRORS_TIMEOUT_RATIO=0
     if [ "$JMETER_ERRORS_TIMEOUT" -gt "0" ]; then 
-        JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_STARTED} ))
+        JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_FINISHED} ))
     fi
 
     # No HTTP Response errors
     JMETER_ERRORS_NOHTTPRESPONSE=$(grep NoHttpResponseException $LOG_FILE | wc -l)
     JMETER_ERRORS_NOHTTPRESPONSE_RATIO=0
     if [ "$JMETER_ERRORS_NOHTTPRESPONSE" -gt "0" ]; then 
-        JMETER_ERRORS_NOHTTPRESPONSE_RATIO=$((  100*${JMETER_ERRORS_NOHTTPRESPONSE}/${JMETER_TH_STARTED} ))
+        JMETER_ERRORS_NOHTTPRESPONSE_RATIO=$((  100*${JMETER_ERRORS_NOHTTPRESPONSE}/${JMETER_TH_FINISHED} ))
     fi
 
     # SocketException errors
     JMETER_ERRORS_SOCKET=$(grep SocketException $LOG_FILE | wc -l)
     JMETER_ERRORS_SOCKET_RATIO=0
     if [ "$JMETER_ERRORS_SOCKET" -gt "0" ]; then 
-        JMETER_ERRORS_SOCKET_RATIO=$((  100*${JMETER_ERRORS_SOCKET}/${JMETER_TH_STARTED} ))
+        JMETER_ERRORS_SOCKET_RATIO=$((  100*${JMETER_ERRORS_SOCKET}/${JMETER_TH_FINISHED} ))
     fi
 
     SERVER=""
