@@ -174,14 +174,14 @@ function test_parameters_consistence() {
 
 }
 
-function run_jmeter_server() {
+# function run_jmeter_server() {
 	
-	echo "Running JMeter Server..."
+# 	echo "Running JMeter Server..."
 	
-	$JMETER_PATH -s > $TMP_FILE 
-	exit $?
+# 	$JMETER_PATH -s > $TMP_FILE 
+# 	exit $?
 
-}
+# }
 
 function update_test_suite() {
 
@@ -225,16 +225,16 @@ function save_test_metrics() {
 #
 function monitor_jmeter_execution() {
 
-    LOCAL_HEADER=$(echo -e \
-			 "Time;" \
-			 "JMeterThStarted;" \
-			 "JMeterThFinished;" \
-			 "JMeterThRatio;" \
-			 "JMeterErrors(timeout)")
-	
-    JMETER_TH_FINISHED="0"
-    i=0
-	while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
+  LOCAL_HEADER=$(echo -e \
+		 "Time;" \
+		 "JMeterThStarted;" \
+		 "JMeterThFinished;" \
+		 "JMeterThRatio;" \
+		 "JMeterErrors(timeout)")
+
+  JMETER_TH_FINISHED="0"
+  i=0
+  while [ $JMETER_TH_FINISHED -lt $NUM_THREADS ]; do
 
     if [ "$i" -eq "0" ]; then
         FIRST_LINE=true
@@ -249,20 +249,35 @@ function monitor_jmeter_execution() {
 
     NOW=`date '+%H:%M:%S'`
 
-    # awk removes \t from wc output
-    JMETER_TH_STARTED=$(cat jmeter.log | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
-    # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
-    JMETER_TH_FINISHED=$(cat jmeter.log | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
+    if [ ! -e $JMETER_LOG_FILE ]; then
+      echo
+      echo "ERRO: Log file $JMETER_LOG_FILE was not created."
+      echo
+      exit -1
+    fi
 
-		JMETER_TH_RATIO=0
-		if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
+    if [ ! -e $LOG_FILE ]; then
+      echo
+      echo "ERRO: Log file $LOG_FILE was not created."
+      echo
+      exit -1
+    fi
+
+    # awk removes \t from wc output
+    JMETER_TH_STARTED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i started | wc -l | awk '{ print $1 }')
+    # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
+    #JMETER_TH_FINISHED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
+    JMETER_TH_FINISHED=$(cat $LOG_FILE | wc -l)
+
+  	JMETER_TH_RATIO=0
+  	if [ "$JMETER_TH_STARTED" -gt "0" ]; then 
       JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
     fi
 
     JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
     JMETER_ERRORS_TIMEOUT=$(grep -i SocketTimeoutException $LOG_FILE | wc -l)
 
-		JMETER_ERRORS_TIMEOUT_RATIO=0
+  	JMETER_ERRORS_TIMEOUT_RATIO=0
     if [ "$JMETER_ERRORS_TIMEOUT" -gt "0" ]; then 
         JMETER_ERRORS_TIMEOUT_RATIO=$((  100*${JMETER_ERRORS_TIMEOUT}/${JMETER_TH_STARTED} ))
     fi
@@ -276,7 +291,7 @@ function monitor_jmeter_execution() {
           HEADER=$(echo -e "${LOCAL_HEADER};" \
          "ServerCnx:80;" \
          "ServerCnx:8080;" \
- 		     "ServerSysLoad;" \
+  		     "ServerSysLoad;" \
          "ServerJVMThAll;" \
          "ServerJVMThRun;" \
          "ServerJVMThBlk;" \
@@ -293,9 +308,9 @@ function monitor_jmeter_execution() {
       # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90; 60; 9
       SERVER=`cat $SERVER_FILE | grep \;`
 
-      if [ -z "$SERVER" ]; then
-        SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
-      else
+      if [ "$SERVER" != "X;X;X;X;X;X;X;X;X;X;X;X" ]; then
+      #   SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
+      # else
         http_connections=$(echo $SERVER | awk -F\; '{print $1}')
         tomcat_connections=$(echo $SERVER | awk -F\; '{print $2}')
         sysload=$(echo $SERVER | awk -F\; '{print $3}')
@@ -330,24 +345,24 @@ function monitor_jmeter_execution() {
       fi
     fi
    	  
-	    line_with_header=$(echo $HEADER"\n" \
-	            "${NOW};" \
+      line_with_header=$(echo $HEADER"\n" \
+              "${NOW};" \
            	    "${JMETER_TH_STARTED};" \
-	            "${JMETER_TH_FINISHED};" \
-		        "${JMETER_TH_RATIO}%;" \
-		        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
-		        "${SERVER}")
+              "${JMETER_TH_FINISHED};" \
+  	        "${JMETER_TH_RATIO}%;" \
+  	        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
+  	        "${SERVER}")
 
         line_no_header=$(echo "${NOW};" \
   		        "${JMETER_TH_STARTED};" \
-	            "${JMETER_TH_FINISHED};" \
-		        "${JMETER_TH_RATIO}%;" \
-		        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
+              "${JMETER_TH_FINISHED};" \
+  	        "${JMETER_TH_RATIO}%;" \
+  	        "${JMETER_ERRORS}(${JMETER_ERRORS_TIMEOUT_RATIO}%);" \
   		        "${SERVER}")
 
-	  #
-	  # Imprimir ou nao imprimir o cabecalho?
-	  #
+    #
+    # Imprimir ou nao imprimir o cabecalho?
+    #
 
         if $HAS_HEADER; then
 
@@ -356,12 +371,12 @@ function monitor_jmeter_execution() {
                  TEST_METRICS="$line_with_header"; 
             fi
             
-		    # With header
+  	    # With header
             echo -e "$line_with_header" | column -t -s\; 
             
         else 
         
-	        TEST_METRICS="$line_no_header"
+          TEST_METRICS="$line_no_header"
 
              # Without header	
              echo -e "$line_with_header" | column -t -s\; | grep -v JMeterThStarted
@@ -380,9 +395,10 @@ function monitor_jmeter_execution() {
         trap "killJKM" KILL
 
         sleep 5
-	
+
         (( i = i + 1 ))
-    done
+  done
+
 
 }
 
@@ -436,8 +452,14 @@ function save_errors() {
 	 # <httpSample t="93006" lt="93006" ts="1276713131811" s="true" lb="http://proxyerror.inep.gov.br/index.html?Time=16%2FJun%2F2010%3A15%3A32%3A01%20-0300&amp;ID=0042687649&amp;Client_IP=172.29.11.193&amp;User=-&amp;Site=172.29.9.32&amp;URI=web%2Fguest%3Bjsessionid%3D8B10290211FEC52FBC7CD7E4A6C57F39&amp;Status_Code=502&amp;Decision_Tag=ALLOW_CUSTOMCAT_1090519041-DefaultGroup-Servidores_Vips-NONE-NONE-DefaultRouting&amp;URL_Cat=Sites%20Liberados&amp;WBRS=ns&amp;DVS_Verdict=-&amp;DVS_ThreatName=-&amp;Reauth_URL=-" rc="200" rm="OK" tn="Thread Group 1-5630" dt="text" by="3950"/>
 }
 
-function backup_jmeter_log_file {
-  cp $LOG_FILE ${LOG_FILE}.$(date +%Y%m%d%H%M)
+function backup_log_files {
+  mv $LOG_FILE ${LOG_FILE}.$(date +%Y%m%d%H%M)
+  mv $TMP_FILE ${TMP_FILE}.$(date +%Y%m%d%H%M)
+  mv $JMETER_LOG_FILE ${JMETER_LOG_FILE}.$(date +%Y%m%d%H%M)
+}
+
+function delete_log_files {
+  rm $JMETER_LOG_FILE $LOG_FILE $TMP_FILE &> /dev/null
 }
 
 function test_suite_existence() {
@@ -463,34 +485,37 @@ function run_jmeter_client() {
 
 	update_test_suite
 
-	rm jmeter.log &> /dev/null
+  delete_log_files
 
-  # JMETER_CMD="$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE"
+	#rm jmeter.log &> /dev/null
 
-  # if [ -n "$PROXY_ADDR" ]; then
-  #  JMETER_CMD=$JMETER_CMD" -H $PROXY_ADDR -P $PROXY_PORT"
-  # fi
+  JMETER_CMD="$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE"
+
+  if [ -n "$PROXY_ADDR" ]; then
+   JMETER_CMD=$JMETER_CMD" -H $PROXY_ADDR -P $PROXY_PORT"
+  fi
 
   # if [ -n "$REMOTE_SERVERS" ]; then
-  #   JMETER_CMD=$JMETER_CMD" $REMOTE_SERVERS"
+  $JMETER_CMD $REMOTE_SERVERS > $TMP_FILE &
   # fi
 
-	if [ ! -z "$PROXY_ADDR" ]; then
-		$JMETER_PATH -n -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
-	else
-		$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE $REMOTE_SERVERS > $TMP_FILE &
-	fi
-	sleep 3 # Time before jmeter.log creation
+	# if [ ! -z "$PROXY_ADDR" ]; then
+	# 	$JMETER_PATH -n -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
+	# else
+	# 	$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE $REMOTE_SERVERS > $TMP_FILE &
+	# fi
+	sleep 5 # Time before jmeter.log creation
 	
 	init_test_report
 	
 	monitor_jmeter_execution
 
+  backup_log_files
+
 	process_jmeter_log
 	
 	save_errors
 
-  backup_jmeter_log_file
 	
 	exit $?
 
@@ -509,6 +534,7 @@ ulimit -n 8192
 
 # Files to be used
 
+JMETER_LOG_FILE="jmeter.log"
 LOG_FILE=".detailed_log.jmeter"
 TMP_FILE=".summary_results.jmeter"
 SERVER_FILE=".server_metrics.jmeter"
@@ -522,16 +548,16 @@ if [[ ! -e reports ]]; then mkdir -v reports; fi
 	
 # Check passed arguments
 
-while getopts "t:T:r:R:c:h:H:P:Sh?" OPT; do
+while getopts "t:T:r:R:c:h:H:P:S:h?" OPT; do
   case "$OPT" in
     "t") TEST_SUITE="$OPTARG" ;;
  	  "T") NUM_THREADS="$OPTARG" ;;
     "r") RAMP_UP="$OPTARG" ;;
     "R") REMOTE_SERVERS="-R$OPTARG" ;;
 	  "c") COMMENT="$OPTARG" ;;
+    "S") JAVA_SERVER="$OPTARG" ;;
 	  "H") PROXY_ADDR="$OPTARG" ;;
 	  "P") PROXY_PORT="$OPTARG" ;;
-	  "S") JAVA_SERVER="$OPTARG" ;;
     "u") TARGET_URL="$OPTARG" ;;
     "h") usage;;
     "?") usage;;
