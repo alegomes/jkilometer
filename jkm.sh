@@ -467,7 +467,6 @@ function process_jmeter_log() {
 	else
 	    echo "JMeter results not in expected format! Is 'Generate Summary Result' listener present in $TEST_SUITE ?"
 	    echo "-->${SUMMARY_RESULTS}<--"
-      echo "$TMP_FILE:"
       echo "......... $TMP_FILE >>>>>>>>>>>>"
       cat $TMP_FILE
       echo "<<<<<<<<< $TMP_FILE ............"
