@@ -195,11 +195,11 @@ function update_test_suite() {
 	# putafaltadesacanagem
 
 	MAC=`uname -a | grep -i darwin`
-	if [ -n "$MAC" ]; then
-		# Eh Mac	
+	if [ -z "$MAC" ]; then
+    # Eh Linux	
     SED_BKP_DIRECTIVE="-i$BKP_SUFFIX"
 	else
-	    # Eh Linux
+    # Eh Max
     SED_BKP_DIRECTIVE="-i $BKP_SUFFIX"
 	fi
 
