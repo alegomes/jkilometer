@@ -237,7 +237,7 @@ function monitor_jmeter_execution() {
 		 "JMeterThStarted;" \
 		 "JMeterThFinished;" \
 		 "JMeterThRatio;" \
-		 "JMeterErrors(timeout)")
+		 "JMeterErrors(to,ht,co)")
 
   JMETER_TH_FINISHED="-1"
   i=0
