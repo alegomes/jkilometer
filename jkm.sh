@@ -430,6 +430,8 @@ function monitor_jmeter_execution() {
     (( TIME_SINCE_LAST_FINISHED = NOW - TIME_LAST_FINISHED ))
     if [ $TIME_SINCE_LAST_FINISHED -gt $TIMEOUT ]; then
       TIME_TO_TIMEOUT="$TIME_SINCE_LAST_FINISHED > $TIMEOUT";
+    else
+      unset TIME_TO_TIMEOUT
     fi
 
     sleep 5
