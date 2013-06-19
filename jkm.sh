@@ -210,8 +210,6 @@ function update_test_suite() {
 	    -e "s/ramp_time\">.*</ramp_time\">${RAMP_UP}</" \
       $TEST_SUITE
 
-  echo "TEST_SUITE[$TEST_SUITE]"
-
   mv $TEST_SUITE$BKP_SUFFIX $BKP_DIR
 
   if [ "x$TARGET_URL" != "x" ]; then
@@ -438,7 +436,7 @@ function monitor_jmeter_execution() {
 
   done
 
-  if [ -n $TIME_TO_TIMEOUT ]; then
+  if [ -n "$TIME_TO_TIMEOUT" ]; then
     echo "Test timed out with $JMETER_TH_STARTED started and $JMETER_TH_FINISHED finished threads."
     echo "($TIME_TO_TIMEOUT)"
   fi
