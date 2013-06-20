@@ -501,7 +501,7 @@ function save_errors() {
 }
 
 function backup_log_files {
-  mkdir -p bkps $> /dev/null
+  mkdir -p $BKP_DIR &> /dev/null
 
   NOW=$(date +%Y%m%d%H%M)
   echo "Backing up $LOG_FILE, $TMP_FILE and $JMETER_LOG_FILE in timestamp $NOW"
@@ -561,6 +561,13 @@ function run_jmeter_client() {
   (( i = 0 ))
   echo "Waiting for $LOG_FILE file creation..."
   while [ ! -e ${LOG_FILE} ] && [ $i -lt  30 ]; do
+    ILLEGAL_STATE_EXCEPTION="$(grep IllegalStateException $TMP_FILE)"
+    if [ -n "$ILLEGAL_STATE_EXCEPTION" ]; then
+      echo 
+      echo "[ERROR] JMeter execution failed: [ $ILLEGAL_STATE_EXCEPTION ]"
+      echo
+      exit -1
+    fi
 	 sleep 2 
    (( i++ ))
   done
@@ -600,13 +607,14 @@ ulimit -n 8192
 # Files to be used
 
 JMETER_LOG_FILE="jmeter.log"
-LOG_FILE=".detailed_log.jmeter"
-TMP_FILE=".summary_results.jmeter"
-SERVER_FILE=".server_metrics.jmeter"
+LOG_FILE="detailed_log.jmeter"
+TMP_FILE="summary_results.jmeter"
+SERVER_FILE="server_metrics.jmeter"
 SUMMARY_FILE="reports/summary_results.csv"
 TEST_REPORT="reports/tests_results.csv"
 ERRORS_FILE="reports/errors.txt"
 BKP_DIR="bkps" 
+mkdir -p $BKP_DIR &> /dev/null
 
 rm $LOG_FILE &> /dev/null
 
