@@ -87,7 +87,7 @@ function collect_data() {
 	
 	# Testing JBoss
 	if [[ -z "$javaserver_pid" ]]; then
-		javaserver_pid=$(ps aux | grep -i  org.jboss.Main | grep -v grep | awk '{print $2}') 
+		javaserver_pid=$(jps | grep -i jboss | cut -d ' ' -f1) 
 	fi
 
 	# Testing Glassfish
@@ -109,8 +109,8 @@ function collect_data() {
 
     # echo "$(tomcat_user) password can be asked next"
 
-	su - $tomcat_user -c "jstack $javaserver_pid > /tmp/liferay_stack"
-	su - $tomcat_user -c "jstat -gcutil $javaserver_pid > /tmp/liferay_stat"
+	su - $tomcat_user -s /bin/bash -c "jstack $javaserver_pid > /tmp/liferay_stack"
+	su - $tomcat_user -s /bin/bash -c "jstat -gcutil $javaserver_pid > /tmp/liferay_stat"
 
 	liferay_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | wc -l)
 	liferay_blocked_threads=$(grep -i java.lang.Thread.State /tmp/liferay_stack | grep -i block | wc -l)
