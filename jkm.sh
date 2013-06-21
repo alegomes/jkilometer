@@ -291,7 +291,10 @@ function monitor_jmeter_execution() {
 
 
     #JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
-    JMETER_ERRORS=$(grep -v 200,OK $LOG_FILE | wc -l)
+    # JMETER_ERRORS=$(grep -v 200,OK $LOG_FILE | wc -l)
+    # JMeter 2.8: httpSample
+    # JMeter 2.9: HTTP Request
+    JMETER_ERRORS=$(grep -E "httpSample"\|"HTTP Request" $LOG_FILE | grep -v "200,OK" | grep -v "rc=\"200\" rm=\"OK\"" | wc -l)
 
 
     # Timeout errors
