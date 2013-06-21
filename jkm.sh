@@ -278,7 +278,7 @@ function monitor_jmeter_execution() {
     #JMETER_TH_FINISHED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
     
     LAST_JMETER_TH_FINISHED=$JMETER_TH_FINISHED
-    JMETER_TH_FINISHED=$(cat $LOG_FILE | wc -l)
+    JMETER_TH_FINISHED=$(grep -E "httpSample"\|"HTTP Request" $LOG_FILE  | wc -l)
     
     if [ $JMETER_TH_FINISHED -ne $LAST_JMETER_TH_FINISHED ]; then
       TIME_LAST_FINISHED=$(date +%s)
