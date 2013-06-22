@@ -1,0 +1,9 @@
+*detailed_log.jmeter*
+*summary_results.jmeter*
+*server_metrics.jmeter*
+jmeter.log*
+reports
+.DS_Store
+apache-jmeter*
+bkps
+
