@@ -69,15 +69,15 @@ function usage() {
 	  echo -e "\t   -------------------"
    	echo -e "\t   -t A JMeter test plan JMX file"
    	echo
-   	echo -e "\t   -T The number of threads to run the test plan"
+   	echo -e "\t   -T Number of threads to run the test plan"
    	echo
-   	echo -e "\t   -r The time (in seconds) JMeter has to start all the specified threads"
+   	echo -e "\t   -r Time (in seconds) JMeter has to start all the specified threads"
    	echo
 	  echo -e "\t   Optional Arguments"
 	  echo -e "\t   -------------------"
    	echo -e "\t   -S The Java server you wish to monitor during the test plan execution (jkmagent.sh needed)"
   	echo
-  	echo -e "\t   -R Set of JMeter Slaves addresses to help on test plan execution !!! NOT TESTED !!!"
+  	echo -e "\t   -R JMeter slaves for distributed testing"
   	echo
   	echo -e "\t   -c A useful comment to distinguish previous test execution from the next one"
   	echo
@@ -85,12 +85,8 @@ function usage() {
   	echo
   	echo -e "\t   -P Proxy server port"
     echo
-    echo -e "\t   -u Resource to be stressed (e.g. http://10.0.0.10:8080/pagina.html)"
+    echo -e "\t   -u Resource to be stressed (e.g. http://10.0.0.10:8080/pagina.html) [NOT READY]"
   	echo
-  	# echo -e "\t ** SLAVE MODE **"
-  	# echo
-  	# echo -e "\t   -s Start JMeter in slave mode for remote testing (see http://jakarta.apache.org/jmeter/usermanual/remote-test.html) !!! NOT TESTED !!!"
-  	# echo
   	echo -e "\t ** HELP MODE **"
   	echo
   	echo -e "\t   -h or -? Prints this help message."
@@ -99,12 +95,6 @@ function usage() {
 }
 
 function test_jmeter_existence() {
-
-  #if [ ! -z "$JMETER_HOME" ]; then
-  #  echo -e "JMETER_HOME=$JMETER_HOME"
-  #  JMETER_PATH="$JMETER_HOME/bin/jmeter"
-  #  return
-  #fi
 
 	for JMETER_MATCH in $(find -L . -iname jmeter | grep bin); do
 		
@@ -118,10 +108,6 @@ function test_jmeter_existence() {
 		echo
 		echo "JMeter not found. Tell me where is it exporting JMETER_HOME variable."
 		echo
-		#echo -e "\tmy_dir/"
-		#echo -e "\tmy_dir/jkm.sh"
-		#echo -e "\tmy_dir/jakarta-jmeter-2.3.4/"
-		#echo
 		exit -1
 	fi
 	
@@ -176,15 +162,6 @@ function test_parameters_consistence() {
 	fi
 
 }
-
-# function run_jmeter_server() {
-	
-# 	echo "Running JMeter Server..."
-	
-# 	$JMETER_PATH -s > $TMP_FILE 
-# 	exit $?
-
-# }
 
 function update_test_suite() {
 
@@ -274,8 +251,6 @@ function monitor_jmeter_execution() {
 
     # awk removes \t from wc output
     JMETER_TH_STARTED=$(cat $JMETER_LOG_FILE | grep "jmeter.threads.JMeterThread: Thread started" | wc -l )
-    # JMETER_TH_FINISHING=$(cat jmeter.log | grep -i thread | grep -i ending | wc -l | awk '{ print $1 }')
-    #JMETER_TH_FINISHED=$(cat $JMETER_LOG_FILE | grep -i thread | grep -i finished | wc -l | awk '{ print $1 }')
     
     LAST_JMETER_TH_FINISHED=$JMETER_TH_FINISHED
     JMETER_TH_FINISHED=$(grep -E "httpSample"\|"HTTP Request" $LOG_FILE  | wc -l)
@@ -289,9 +264,6 @@ function monitor_jmeter_execution() {
       JMETER_TH_RATIO=$((  100*${JMETER_TH_FINISHED}/${JMETER_TH_STARTED} ))
     fi
 
-
-    #JMETER_ERRORS=$(grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 | wc -l)
-    # JMETER_ERRORS=$(grep -v 200,OK $LOG_FILE | wc -l)
     # JMeter 2.8: httpSample
     # JMeter 2.9: HTTP Request
     JMETER_ERRORS=$(grep -E "httpSample"\|"HTTP Request" $LOG_FILE | grep -v "200,OK" | grep -v "rc=\"200\" rm=\"OK\"" | wc -l)
@@ -329,7 +301,7 @@ function monitor_jmeter_execution() {
           HEADER=$(echo -e "${LOCAL_HEADER};" \
          "ServerCnx:80;" \
          "ServerCnx:8080;" \
-  		     "ServerSysLoad;" \
+  		   "ServerSysLoad;" \
          "ServerJVMThAll;" \
          "ServerJVMThRun;" \
          "ServerJVMThBlk;" \
@@ -341,14 +313,12 @@ function monitor_jmeter_execution() {
          "DbConnTw" )
       fi
 
-        # Collects app server metrics
+      # Collects app server metrics
       telnet $JAVA_SERVER $AGENT_PORT &> $SERVER_FILE 
       # Exemplo: 0; 0; 0.00; 61; 9; 0; 52; 40.38; 84.87; 99.90; 60; 9
       SERVER=`cat $SERVER_FILE | grep \;`
 
       if [ -n "$SERVER" ] && [ "$SERVER" != "X;X;X;X;X;X;X;X;X;X;X;X" ]; then
-      #   SERVER="There's no;jkmagent.sh;listening on;$JAVA_SERVER"
-      # else
         http_connections=$(echo $SERVER | awk -F\; '{print $1}')
         tomcat_connections=$(echo $SERVER | awk -F\; '{print $2}')
         sysload=$(echo $SERVER | awk -F\; '{print $3}')
@@ -427,6 +397,7 @@ function monitor_jmeter_execution() {
 
     (( i = i + 1 ))
 
+    # If requests take too long to be responded...
     NOW=$(date +%s)
     (( TIME_SINCE_LAST_FINISHED = NOW - TIME_LAST_FINISHED ))
     if [ $TIME_SINCE_LAST_FINISHED -gt $TIMEOUT ]; then
@@ -452,17 +423,11 @@ function process_jmeter_log() {
  
   REGEX='Generate Summary Results =[ ]+([0-9]+) in[ ]+ ([0-9.,]+)s =[ ]+([0-9.,]+)\/s Avg:[ ]+([0-9]+) Min:[ ]+([0-9]+) Max:[ ]+([0-9]+) Err:[ ]+ [0-9]+ \(([0-9.,]+)%\)'
 
-	# NUM_SAMPLES=`cat $TEST_SUITE | grep \<HTTPSampler | wc -l`
-	# TOTAL_SAMPLES=$(( NUM_SAMPLES * NUM_THREADS ))
 	SUMMARY_RESULTS=`grep -E "$REGEX" $TMP_FILE`
-  #REGEX_COM_PONTO="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9.]+)s[\ ]+=[\ ]+([0-9.]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9.]+)%\).*" 
-  #REGEX_COM_VIRGULA="Generate\ Summary\ Results\ =[\ ]+([0-9]+)[\ ]+in[\ ]+([0-9,]+)s[\ ]+=[\ ]+([0-9,]+)/s[\ ]+Avg:[\ ]+([0-9]+)[\ ]+Min:[\ ]+([0-9]+)[\ ]+Max:[\ ]+([0-9]+)[\ ]+Err:[\ ]+[0-9]+[\ ]+\(([0-9,]+)%\).*"
 
 	# Parse JMeter 'Generate Summary Results' listener output.
 	# e.g Generate Summary Results = 10 in 1.1s = 9.5/s Avg: 133 Min: 93 Max: 165 Err: 0 (0.00%)
 
-	# Debian requires quotes around the regex. Does it work on MacOS et. al.?  
-	# if [[ "$SUMMARY_RESULTS" =~ $REGEX_COM_PONTO || "$SUMMARY_RESULTS" =~ $REGEX_COM_VIRGULA ]] 
   if [[ "$SUMMARY_RESULTS" =~ $REGEX ]] 
 	then 
 
@@ -495,12 +460,8 @@ function process_jmeter_log() {
 
 function save_errors() {
 
-	#grep -i \<httpsample $LOG_FILE | grep -v rc=\"200 | grep -v rc=\"3 > $ERRORS_FILE
-  grep -v 200,OK $LOG_FILE > $ERRORS_FILE
+  grep -E "httpSample"\|"HTTP Request" $LOG_FILE | grep -v "200,OK" | grep -v "rc=\"200\" rm=\"OK\"" > $ERRORS_FILE
 	
-	# [TODO] How to handle things like this?
-	
-	 # <httpSample t="93006" lt="93006" ts="1276713131811" s="true" lb="http://proxyerror.inep.gov.br/index.html?Time=16%2FJun%2F2010%3A15%3A32%3A01%20-0300&amp;ID=0042687649&amp;Client_IP=172.29.11.193&amp;User=-&amp;Site=172.29.9.32&amp;URI=web%2Fguest%3Bjsessionid%3D8B10290211FEC52FBC7CD7E4A6C57F39&amp;Status_Code=502&amp;Decision_Tag=ALLOW_CUSTOMCAT_1090519041-DefaultGroup-Servidores_Vips-NONE-NONE-DefaultRouting&amp;URL_Cat=Sites%20Liberados&amp;WBRS=ns&amp;DVS_Verdict=-&amp;DVS_ThreatName=-&amp;Reauth_URL=-" rc="200" rm="OK" tn="Thread Group 1-5630" dt="text" by="3950"/>
 }
 
 function backup_log_files {
@@ -539,26 +500,14 @@ function init_test_report() {
 function run_jmeter_client() {
 
 	update_test_suite
-
   delete_log_files
-
-	#rm jmeter.log &> /dev/null
 
   JMETER_CMD="$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE"
 
   if [ -n "$PROXY_ADDR" ]; then
    JMETER_CMD=$JMETER_CMD" -H $PROXY_ADDR -P $PROXY_PORT"
   fi
-
-  # if [ -n "$REMOTE_SERVERS" ]; then
   $JMETER_CMD $REMOTE_SERVERS > $TMP_FILE &
-  # fi
-
-	# if [ ! -z "$PROXY_ADDR" ]; then
-	# 	$JMETER_PATH -n -t $TEST_SUITE -H $PROXY_ADDR -P $PROXY_PORT -l $LOG_FILE > $TMP_FILE &
-	# else
-	# 	$JMETER_PATH -n -t $TEST_SUITE -l $LOG_FILE $REMOTE_SERVERS > $TMP_FILE &
-	# fi
 
   # Time before jmeter.log creation
   (( i = 0 ))
